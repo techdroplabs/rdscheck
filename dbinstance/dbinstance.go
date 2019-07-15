@@ -48,15 +48,15 @@ func GetSnapshots(i *rds.RDS, DBInstanceIdentifier string) ([]*rds.DBSnapshot, e
 
 // CopySnapshots copies the snapshots either to the same region as the original
 // or to a new region
-func CopySnapshots(i *rds.RDS, s *rds.DBSnapshot) error {
+func CopySnapshots(i *rds.RDS, snap *rds.DBSnapshot) error {
 
-	arn := strings.SplitN(*s.DBSnapshotArn, ":", 8)
+	arn := strings.SplitN(*snap.DBSnapshotArn, ":", 8)
 	cleanArn := arn[len(arn)-1]
 
 	input := &rds.CopyDBSnapshotInput{
 		SourceRegion:               aws.String(config.AWSRegion),
 		DestinationRegion:          aws.String(config.SnapshotDestinationRegion),
-		SourceDBSnapshotIdentifier: aws.String(*s.DBSnapshotArn),
+		SourceDBSnapshotIdentifier: aws.String(*snap.DBSnapshotArn),
 		TargetDBSnapshotIdentifier: aws.String(cleanArn),
 		Tags: []*rds.Tag{
 			{
@@ -65,7 +65,7 @@ func CopySnapshots(i *rds.RDS, s *rds.DBSnapshot) error {
 			},
 			{
 				Key:   aws.String("RDS Instance"),
-				Value: aws.String(*s.DBSnapshotIdentifier),
+				Value: aws.String(*snap.DBSnapshotIdentifier),
 			},
 			{
 				Key:   aws.String("Status"),
@@ -119,9 +119,9 @@ func DeleteOldSnapshots(i *rds.RDS, snap []*rds.DBSnapshot) error {
 }
 
 // CheckIfDatabaseSubnetGroupExist return true if the Subnet Group already exist
-func CheckIfDatabaseSubnetGroupExist(i *rds.RDS, s *rds.DBSnapshot) bool {
+func CheckIfDatabaseSubnetGroupExist(i *rds.RDS, snap *rds.DBSnapshot) bool {
 	input := &rds.DescribeDBSubnetGroupsInput{
-		DBSubnetGroupName: aws.String(*s.DBSnapshotIdentifier),
+		DBSubnetGroupName: aws.String(*snap.DBSnapshotIdentifier),
 	}
 	_, err := i.DescribeDBSubnetGroups(input)
 	if err != nil {
@@ -140,11 +140,11 @@ func CheckIfDatabaseSubnetGroupExist(i *rds.RDS, s *rds.DBSnapshot) bool {
 }
 
 // CreateDatabaseSubnetGroup creates the Subnet Group if it doesnt already exist
-func CreateDatabaseSubnetGroup(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot, SubnetIds []string) error {
+func CreateDatabaseSubnetGroup(dd *datadog.Client, i *rds.RDS, snap *rds.DBSnapshot, subnetids []string) error {
 	input := &rds.CreateDBSubnetGroupInput{
-		DBSubnetGroupDescription: aws.String(*s.DBSnapshotIdentifier),
-		DBSubnetGroupName:        aws.String(*s.DBSnapshotIdentifier),
-		SubnetIds:                aws.StringSlice(SubnetIds),
+		DBSubnetGroupDescription: aws.String(*snap.DBSnapshotIdentifier),
+		DBSubnetGroupName:        aws.String(*snap.DBSnapshotIdentifier),
+		SubnetIds:                aws.StringSlice(subnetids),
 		Tags: []*rds.Tag{
 			{
 				Key:   aws.String("CreatedBy"),
@@ -152,24 +152,24 @@ func CreateDatabaseSubnetGroup(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot
 			},
 			{
 				Key:   aws.String("Snapshot"),
-				Value: aws.String(*s.DBSnapshotIdentifier),
+				Value: aws.String(*snap.DBSnapshotIdentifier),
 			},
 		},
 	}
 
 	_, err := i.CreateDBSubnetGroup(input)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return err
 	}
-	common.PostDatadogChecks(dd, "rdscheck.status", "ok", s)
+	common.PostDatadogChecks(dd, "rdscheck.status", "ok", snap)
 	return err
 }
 
 // CheckIfRDSInstanceExist returns true if the RDS instance already exist
-func CheckIfRDSInstanceExist(i *rds.RDS, s *rds.DBSnapshot) bool {
+func CheckIfRDSInstanceExist(i *rds.RDS, snap *rds.DBSnapshot) bool {
 	input := &rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(*s.DBInstanceIdentifier + "-" + *s.DBSnapshotIdentifier),
+		DBInstanceIdentifier: aws.String(*snap.DBInstanceIdentifier + "-" + *snap.DBSnapshotIdentifier),
 	}
 	_, err := i.DescribeDBInstances(input)
 	if err != nil {
@@ -188,17 +188,17 @@ func CheckIfRDSInstanceExist(i *rds.RDS, s *rds.DBSnapshot) bool {
 }
 
 // CreateDBFromSnapshot creates the RDS instance from a snapshot
-func CreateDBFromSnapshot(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot, dbName string, VpcSecurityGroupIds []string) error {
+func CreateDBFromSnapshot(dd *datadog.Client, i *rds.RDS, snap *rds.DBSnapshot, dbname string, vpcsecuritygroupids []string) error {
 	input := &rds.RestoreDBInstanceFromDBSnapshotInput{
 		AutoMinorVersionUpgrade: aws.Bool(false),
 		DBInstanceClass:         aws.String("db.t2.micro"),
-		DBInstanceIdentifier:    aws.String(*s.DBInstanceIdentifier + "-" + *s.DBSnapshotIdentifier),
-		DBSnapshotIdentifier:    aws.String(*s.DBSnapshotIdentifier),
-		DBSubnetGroupName:       aws.String(*s.DBSnapshotIdentifier),
+		DBInstanceIdentifier:    aws.String(*snap.DBInstanceIdentifier + "-" + *snap.DBSnapshotIdentifier),
+		DBSnapshotIdentifier:    aws.String(*snap.DBSnapshotIdentifier),
+		DBSubnetGroupName:       aws.String(*snap.DBSnapshotIdentifier),
 		DeletionProtection:      aws.Bool(false),
-		Engine:                  aws.String(*s.Engine),
+		Engine:                  aws.String(*snap.Engine),
 		MultiAZ:                 aws.Bool(false),
-		Port:                    aws.Int64(*s.Port),
+		Port:                    aws.Int64(*snap.Port),
 		PubliclyAccessible:      aws.Bool(false),
 		Tags: []*rds.Tag{
 			{
@@ -207,58 +207,58 @@ func CreateDBFromSnapshot(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot, dbN
 			},
 			{
 				Key:   aws.String("Snapshot"),
-				Value: aws.String(*s.DBSnapshotIdentifier),
+				Value: aws.String(*snap.DBSnapshotIdentifier),
 			},
 			{
 				Key:   aws.String("Status"),
 				Value: aws.String("ready"),
 			},
 		},
-		VpcSecurityGroupIds: aws.StringSlice(VpcSecurityGroupIds),
+		VpcSecurityGroupIds: aws.StringSlice(vpcsecuritygroupids),
 	}
-	if *s.Engine != "postgres" {
-		input.DBName = aws.String(dbName)
+	if *snap.Engine != "postgres" {
+		input.DBName = aws.String(dbname)
 	}
 
 	_, err := i.RestoreDBInstanceFromDBSnapshot(input)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return err
 	}
 
-	err = UpdateStatusTag(dd, s, i, *s.DBSnapshotArn, "testing")
+	err = UpdateStatusTag(dd, snap, i, *snap.DBSnapshotArn, "testing")
 	if err != nil {
 		log.WithError(err).Error("Could not update snapshot status")
 		return err
 	}
-	common.PostDatadogChecks(dd, "rdscheck.status", "ok", s)
+	common.PostDatadogChecks(dd, "rdscheck.status", "ok", snap)
 	return nil
 }
 
 // Delete the RDS instance
-func DeleteDB(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot) error {
+func DeleteDB(dd *datadog.Client, i *rds.RDS, snap *rds.DBSnapshot) error {
 	input := &rds.DeleteDBInstanceInput{
-		DBInstanceIdentifier:   aws.String(*s.DBInstanceIdentifier + "-" + *s.DBSnapshotIdentifier),
+		DBInstanceIdentifier:   aws.String(*snap.DBInstanceIdentifier + "-" + *snap.DBSnapshotIdentifier),
 		DeleteAutomatedBackups: aws.Bool(true),
 		SkipFinalSnapshot:      aws.Bool(true),
 	}
 	_, err := i.DeleteDBInstance(input)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return err
 	}
 
-	err = UpdateStatusTag(dd, s, i, *s.DBSnapshotArn, "tested")
+	err = UpdateStatusTag(dd, snap, i, *snap.DBSnapshotArn, "tested")
 	if err != nil {
 		log.WithError(err).Error("Could not update snapshot status")
 		return err
 	}
 
-	common.PostDatadogChecks(dd, "rdscheck.status", "ok", s)
+	common.PostDatadogChecks(dd, "rdscheck.status", "ok", snap)
 	return nil
 }
 
-func UpdateStatusTag(dd *datadog.Client, s *rds.DBSnapshot, i *rds.RDS, arn, status string) error {
+func UpdateStatusTag(dd *datadog.Client, snap *rds.DBSnapshot, i *rds.RDS, arn, status string) error {
 	inputRemove := &rds.RemoveTagsFromResourceInput{
 		ResourceName: aws.String(arn),
 		TagKeys: []*string{
@@ -267,7 +267,7 @@ func UpdateStatusTag(dd *datadog.Client, s *rds.DBSnapshot, i *rds.RDS, arn, sta
 	}
 	_, err := i.RemoveTagsFromResource(inputRemove)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return err
 	}
 
@@ -282,7 +282,7 @@ func UpdateStatusTag(dd *datadog.Client, s *rds.DBSnapshot, i *rds.RDS, arn, sta
 	}
 	_, err = i.AddTagsToResource(inputAdd)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return err
 	}
 	return nil
@@ -304,44 +304,44 @@ func CheckTag(i *rds.RDS, arn, key, value string) bool {
 	return false
 }
 
-func GetDBInstanceInfo(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot) (*rds.DBInstance, error) {
+func GetDBInstanceInfo(dd *datadog.Client, i *rds.RDS, snap *rds.DBSnapshot) (*rds.DBInstance, error) {
 	input := &rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(*s.DBInstanceIdentifier + "-" + *s.DBSnapshotIdentifier),
+		DBInstanceIdentifier: aws.String(*snap.DBInstanceIdentifier + "-" + *snap.DBSnapshotIdentifier),
 	}
 	o, err := i.DescribeDBInstances(input)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return nil, err
 	}
 	for _, db := range o.DBInstances {
 		return db, nil
 	}
-	common.PostDatadogChecks(dd, "rdscheck.status", "ok", s)
+	common.PostDatadogChecks(dd, "rdscheck.status", "ok", snap)
 	return nil, nil
 }
 
-func DeleteDatabaseSubnetGroup(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot) error {
+func DeleteDatabaseSubnetGroup(dd *datadog.Client, i *rds.RDS, snap *rds.DBSnapshot) error {
 	input := &rds.DeleteDBSubnetGroupInput{
-		DBSubnetGroupName: aws.String(*s.DBSnapshotIdentifier),
+		DBSubnetGroupName: aws.String(*snap.DBSnapshotIdentifier),
 	}
 	_, err := i.DeleteDBSubnetGroup(input)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return err
 	}
 
-	common.PostDatadogChecks(dd, "rdscheck.status", "ok", s)
+	common.PostDatadogChecks(dd, "rdscheck.status", "ok", snap)
 	return err
 }
 
-func ChangeDBpassword(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot, DBArn, password string) error {
+func ChangeDBpassword(dd *datadog.Client, i *rds.RDS, snap *rds.DBSnapshot, DBArn, password string) error {
 	input := &rds.ModifyDBInstanceInput{
-		DBInstanceIdentifier: aws.String(*s.DBInstanceIdentifier + "-" + *s.DBSnapshotIdentifier),
+		DBInstanceIdentifier: aws.String(*snap.DBInstanceIdentifier + "-" + *snap.DBSnapshotIdentifier),
 		MasterUserPassword:   aws.String(password),
 	}
 	_, err := i.ModifyDBInstance(input)
 	if err != nil {
-		common.PostDatadogChecks(dd, "rdscheck.status", "critical", s)
+		common.PostDatadogChecks(dd, "rdscheck.status", "critical", snap)
 		return err
 	}
 
@@ -349,7 +349,7 @@ func ChangeDBpassword(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot, DBArn, 
 
 	for !statusOk {
 		time.Sleep(2 * time.Second)
-		db, err := GetDBInstanceInfo(dd, i, s)
+		db, err := GetDBInstanceInfo(dd, i, snap)
 		if err != nil {
 			return err
 		}
@@ -358,18 +358,18 @@ func ChangeDBpassword(dd *datadog.Client, i *rds.RDS, s *rds.DBSnapshot, DBArn, 
 		}
 	}
 
-	err = UpdateStatusTag(dd, s, i, DBArn, "testing")
+	err = UpdateStatusTag(dd, snap, i, DBArn, "testing")
 	if err != nil {
 		log.WithError(err).Error("Could not update snapshot status")
 		return err
 	}
-	common.PostDatadogChecks(dd, "rdscheck.status", "ok", s)
+	common.PostDatadogChecks(dd, "rdscheck.status", "ok", snap)
 	return nil
 }
 
-func GetDBInstanceStatus(i *rds.RDS, s *rds.DBSnapshot) string {
+func GetDBInstanceStatus(i *rds.RDS, snap *rds.DBSnapshot) string {
 	input := &rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(*s.DBInstanceIdentifier + "-" + *s.DBSnapshotIdentifier),
+		DBInstanceIdentifier: aws.String(*snap.DBInstanceIdentifier + "-" + *snap.DBSnapshotIdentifier),
 	}
 	o, err := i.DescribeDBInstances(input)
 	if err != nil {

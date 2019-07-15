@@ -23,7 +23,7 @@ func main() {
 
 func run(i *common.DBInstance) error {
 	dd := common.DataDogSession(config.DDApiKey, config.DDAplicationKey)
-	sourceRDS := rds.New(common.AWSSessions(config.SnapshotDestinationRegion))
+	destinationRDS := rds.New(common.AWSSessions(config.SnapshotDestinationRegion))
 	s3Session := s3.New(common.AWSSessions(config.SnapshotDestinationRegion))
 
 	yaml, err := common.GetYamlFileFromS3(s3Session, config.S3Bucket, config.S3Key)
@@ -39,7 +39,7 @@ func run(i *common.DBInstance) error {
 	}
 
 	for _, doc := range doc.Instances {
-		snapshots, err := dbinstance.GetSnapshots(sourceRDS, doc.Name)
+		snapshots, err := dbinstance.GetSnapshots(destinationRDS, doc.Name)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"RDS Instance": doc.Name,
@@ -48,10 +48,10 @@ func run(i *common.DBInstance) error {
 		}
 
 		for _, snapshot := range snapshots {
-			if dbinstance.CheckTag(sourceRDS, *snapshot.DBSnapshotArn, "Status", "tested") == false {
-				if dbinstance.CheckTag(sourceRDS, *snapshot.DBSnapshotArn, "CreatedBy", "rdscheck") == true {
-					if dbinstance.CheckIfDatabaseSubnetGroupExist(sourceRDS, snapshot) != true {
-						err := dbinstance.CreateDatabaseSubnetGroup(dd, sourceRDS, snapshot, config.SubnetIds)
+			if !dbinstance.CheckTag(destinationRDS, *snapshot.DBSnapshotArn, "Status", "tested") {
+				if dbinstance.CheckTag(destinationRDS, *snapshot.DBSnapshotArn, "CreatedBy", "rdscheck") {
+					if !dbinstance.CheckIfDatabaseSubnetGroupExist(destinationRDS, snapshot) {
+						err := dbinstance.CreateDatabaseSubnetGroup(dd, destinationRDS, snapshot, config.SubnetIds)
 						if err != nil {
 							log.WithFields(log.Fields{
 								"RDS Instance": *snapshot.DBInstanceIdentifier,
@@ -60,9 +60,9 @@ func run(i *common.DBInstance) error {
 						}
 					}
 
-					if dbinstance.CheckIfRDSInstanceExist(sourceRDS, snapshot) != true {
-						if dbinstance.CheckTag(sourceRDS, *snapshot.DBSnapshotArn, "Status", "testing") == false {
-							err = dbinstance.CreateDBFromSnapshot(dd, sourceRDS, snapshot, doc.Database, config.SecurityGroupIds)
+					if !dbinstance.CheckIfRDSInstanceExist(destinationRDS, snapshot) {
+						if !dbinstance.CheckTag(destinationRDS, *snapshot.DBSnapshotArn, "Status", "testing") {
+							err = dbinstance.CreateDBFromSnapshot(dd, destinationRDS, snapshot, doc.Database, config.SecurityGroupIds)
 							if err != nil {
 								log.WithFields(log.Fields{
 									"Snapshot":     *snapshot.DBSnapshotIdentifier,
@@ -73,7 +73,7 @@ func run(i *common.DBInstance) error {
 						}
 					}
 
-					dbInfo, err := dbinstance.GetDBInstanceInfo(dd, sourceRDS, snapshot)
+					dbInfo, err := dbinstance.GetDBInstanceInfo(dd, destinationRDS, snapshot)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
@@ -81,9 +81,9 @@ func run(i *common.DBInstance) error {
 						return err
 					}
 
-					if dbinstance.CheckTag(sourceRDS, *dbInfo.DBInstanceArn, "Status", "ready") == true {
-						if dbinstance.GetDBInstanceStatus(sourceRDS, snapshot) == "available" {
-							err = dbinstance.ChangeDBpassword(dd, sourceRDS, snapshot, *dbInfo.DBInstanceArn, doc.Password)
+					if dbinstance.CheckTag(destinationRDS, *dbInfo.DBInstanceArn, "Status", "ready") {
+						if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) == "available" {
+							err = dbinstance.ChangeDBpassword(dd, destinationRDS, snapshot, *dbInfo.DBInstanceArn, doc.Password)
 							if err != nil {
 								log.WithError(err).Error("Could not update db password")
 								return err
@@ -91,11 +91,11 @@ func run(i *common.DBInstance) error {
 						}
 					}
 
-					if dbinstance.CheckTag(sourceRDS, *dbInfo.DBInstanceArn, "Status", "testing") == true {
-						if dbinstance.GetDBInstanceStatus(sourceRDS, snapshot) == "available" {
+					if dbinstance.CheckTag(destinationRDS, *dbInfo.DBInstanceArn, "Status", "testing") {
+						if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) == "available" {
 							if doc.Name == *dbInfo.DBName {
 								for _, query := range doc.Queries {
-									if checks.CheckSQLQueries(dd, snapshot, *dbInfo.Endpoint, *dbInfo.MasterUsername, doc.Password, *dbInfo.DBName, query.Query, query.Regex) == true {
+									if checks.CheckSQLQueries(dd, snapshot, *dbInfo.Endpoint, *dbInfo.MasterUsername, doc.Password, *dbInfo.DBName, query.Query, query.Regex) {
 										common.PostDatadogChecks(dd, "rdscheck.status", "ok", snapshot)
 									} else {
 										log.WithFields(log.Fields{
@@ -109,7 +109,7 @@ func run(i *common.DBInstance) error {
 									}
 								}
 							}
-							err = dbinstance.UpdateStatusTag(dd, snapshot, sourceRDS, *dbInfo.DBInstanceArn, "tested")
+							err = dbinstance.UpdateStatusTag(dd, snapshot, destinationRDS, *dbInfo.DBInstanceArn, "tested")
 							if err != nil {
 								log.WithError(err).Error("Could not update snapshot status")
 								return err
@@ -117,10 +117,10 @@ func run(i *common.DBInstance) error {
 						}
 					}
 
-					if dbinstance.CheckTag(sourceRDS, *dbInfo.DBInstanceArn, "Status", "tested") == true {
-						if dbinstance.CheckIfRDSInstanceExist(sourceRDS, snapshot) == true {
-							if dbinstance.GetDBInstanceStatus(sourceRDS, snapshot) == "available" {
-								err = dbinstance.DeleteDB(dd, sourceRDS, snapshot)
+					if dbinstance.CheckTag(destinationRDS, *dbInfo.DBInstanceArn, "Status", "tested") {
+						if dbinstance.CheckIfRDSInstanceExist(destinationRDS, snapshot) {
+							if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) == "available" {
+								err = dbinstance.DeleteDB(dd, destinationRDS, snapshot)
 								if err != nil {
 									log.WithFields(log.Fields{
 										"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
@@ -136,9 +136,9 @@ func run(i *common.DBInstance) error {
 					}).Info("Snapshot not created by rdscheck")
 				}
 			} else {
-				if dbinstance.CheckIfRDSInstanceExist(sourceRDS, snapshot) != true {
-					if dbinstance.CheckIfDatabaseSubnetGroupExist(sourceRDS, snapshot) == true {
-						err := dbinstance.DeleteDatabaseSubnetGroup(dd, sourceRDS, snapshot)
+				if !dbinstance.CheckIfRDSInstanceExist(destinationRDS, snapshot) {
+					if dbinstance.CheckIfDatabaseSubnetGroupExist(destinationRDS, snapshot) {
+						err := dbinstance.DeleteDatabaseSubnetGroup(dd, destinationRDS, snapshot)
 						if err != nil {
 							log.WithFields(log.Fields{
 								"RDS Instance": *snapshot.DBInstanceIdentifier,
