@@ -70,6 +70,10 @@ func CopySnapshots(i *rds.RDS, snap *rds.DBSnapshot) error {
 				Key:   aws.String("Status"),
 				Value: aws.String("ready"),
 			},
+			{
+				Key:   aws.String("ChecksFailed"),
+				Value: aws.String("no"),
+			},
 		},
 	}
 	_, err := i.CopyDBSnapshot(input)
@@ -223,31 +227,31 @@ func DeleteDB(i *rds.RDS, snap *rds.DBSnapshot) error {
 	return nil
 }
 
-// UpdateStatusTag updates the "Status" tag on the snapshot
-func UpdateStatusTag(i *rds.RDS, snap *rds.DBSnapshot, status string) {
+// UpdateTag updates a tag value on a snapshot
+func UpdateTag(i *rds.RDS, snap *rds.DBSnapshot, key, value string) {
 	inputRemove := &rds.RemoveTagsFromResourceInput{
 		ResourceName: aws.String(*snap.DBSnapshotArn),
 		TagKeys: []*string{
-			aws.String("Status"),
+			aws.String(key),
 		},
 	}
 	_, err := i.RemoveTagsFromResource(inputRemove)
 	if err != nil {
-		log.WithError(err).Error("Could not remove status tag")
+		log.WithError(err).Error("Could not remove tag")
 	}
 
 	inputAdd := &rds.AddTagsToResourceInput{
 		ResourceName: aws.String(*snap.DBSnapshotArn),
 		Tags: []*rds.Tag{
 			{
-				Key:   aws.String("Status"),
-				Value: aws.String(status),
+				Key:   aws.String(key),
+				Value: aws.String(value),
 			},
 		},
 	}
 	_, err = i.AddTagsToResource(inputAdd)
 	if err != nil {
-		log.WithError(err).Error("Could not update status tag")
+		log.WithError(err).Error("Could not update tag")
 	}
 }
 
