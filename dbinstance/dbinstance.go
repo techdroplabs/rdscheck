@@ -224,7 +224,7 @@ func DeleteDB(i *rds.RDS, snap *rds.DBSnapshot) error {
 }
 
 // UpdateStatusTag updates the "Status" tag on the snapshot
-func UpdateStatusTag(snap *rds.DBSnapshot, i *rds.RDS, status string) {
+func UpdateStatusTag(i *rds.RDS, snap *rds.DBSnapshot, status string) {
 	inputRemove := &rds.RemoveTagsFromResourceInput{
 		ResourceName: aws.String(*snap.DBSnapshotArn),
 		TagKeys: []*string{

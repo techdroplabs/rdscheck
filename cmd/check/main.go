@@ -62,11 +62,11 @@ func run(i *common.DBInstance) error {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier,
 						}).Errorf("Could not create Database Subnet Group: %s", err)
-						dbinstance.UpdateStatusTag(snapshot, destinationRDS, "alarm")
+						dbinstance.UpdateStatusTag(destinationRDS, snapshot, "alarm")
 						return err
 					}
 
-					dbinstance.UpdateStatusTag(snapshot, destinationRDS, "restore")
+					dbinstance.UpdateStatusTag(destinationRDS, snapshot, "restore")
 
 				case "restore":
 					err = dbinstance.CreateDBFromSnapshot(destinationRDS, snapshot, doc.Database, config.SecurityGroupIds)
@@ -75,11 +75,11 @@ func run(i *common.DBInstance) error {
 							"Snapshot":     *snapshot.DBSnapshotIdentifier,
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Errorf("Could not create rds instance from snapshot: %s", err)
-						dbinstance.UpdateStatusTag(snapshot, destinationRDS, "alarm")
+						dbinstance.UpdateStatusTag(destinationRDS, snapshot, "alarm")
 						return err
 					}
 
-					dbinstance.UpdateStatusTag(snapshot, destinationRDS, "modify")
+					dbinstance.UpdateStatusTag(destinationRDS, snapshot, "modify")
 
 				case "modify":
 					if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) != "available" {
@@ -91,7 +91,7 @@ func run(i *common.DBInstance) error {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Info("Could not get RDS instance Info")
-						dbinstance.UpdateStatusTag(snapshot, destinationRDS, "alarm")
+						dbinstance.UpdateStatusTag(destinationRDS, snapshot, "alarm")
 						return err
 					}
 
@@ -100,11 +100,11 @@ func run(i *common.DBInstance) error {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Info("Could not update db password")
-						dbinstance.UpdateStatusTag(snapshot, destinationRDS, "alarm")
+						dbinstance.UpdateStatusTag(destinationRDS, snapshot, "alarm")
 						return err
 					}
 
-					dbinstance.UpdateStatusTag(snapshot, destinationRDS, "verify")
+					dbinstance.UpdateStatusTag(destinationRDS, snapshot, "verify")
 
 				case "verify":
 					if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) != "available" {
@@ -116,14 +116,14 @@ func run(i *common.DBInstance) error {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Info("Could not get RDS instance Info")
-						dbinstance.UpdateStatusTag(snapshot, destinationRDS, "alarm")
+						dbinstance.UpdateStatusTag(destinationRDS, snapshot, "alarm")
 						return err
 					}
 
 					if doc.Name == *dbInfo.DBName {
 						for _, query := range doc.Queries {
 							if checks.CheckSQLQueries(destinationRDS, snapshot, *dbInfo.Endpoint, *dbInfo.MasterUsername, doc.Password, *dbInfo.DBName, query.Query, query.Regex) {
-								dbinstance.UpdateStatusTag(snapshot, destinationRDS, "clean")
+								dbinstance.UpdateStatusTag(destinationRDS, snapshot, "clean")
 							} else {
 								log.WithFields(log.Fields{
 									"RDS Instance": string(*snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier),
@@ -131,7 +131,7 @@ func run(i *common.DBInstance) error {
 									"Query":        query.Query,
 									"Regex":        query.Regex,
 								}).Errorf("Query matched failed: %s", err)
-								dbinstance.UpdateStatusTag(snapshot, destinationRDS, "alarm")
+								dbinstance.UpdateStatusTag(destinationRDS, snapshot, "alarm")
 								return err
 							}
 						}
@@ -143,7 +143,7 @@ func run(i *common.DBInstance) error {
 						log.WithError(err).Error("Could not update datadog status")
 					}
 
-					dbinstance.UpdateStatusTag(snapshot, destinationRDS, "clean")
+					dbinstance.UpdateStatusTag(destinationRDS, snapshot, "clean")
 
 				case "clean":
 					err = dbinstance.DeleteDB(destinationRDS, snapshot)
@@ -154,7 +154,7 @@ func run(i *common.DBInstance) error {
 						return err
 					}
 
-					dbinstance.UpdateStatusTag(snapshot, destinationRDS, "tested")
+					dbinstance.UpdateStatusTag(destinationRDS, snapshot, "tested")
 
 				case "tested":
 					if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) != "" {
