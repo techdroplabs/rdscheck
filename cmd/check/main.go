@@ -151,7 +151,6 @@ func run(i *common.DBInstance) error {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Errorf("Could not delete the rds instance: %s", err)
-						dbinstance.UpdateStatusTag(snapshot, destinationRDS, "alarm")
 						return err
 					}
 
