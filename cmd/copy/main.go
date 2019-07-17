@@ -22,7 +22,7 @@ func main() {
 
 func run(i *common.DBInstance) error {
 	sourceRDS := rds.New(common.AWSSessions(config.AWSRegion))
-	s3Session := s3.New(common.AWSSessions(config.SnapshotDestinationRegion))
+	s3Session := s3.New(common.AWSSessions(config.DestinationRegion))
 
 	yaml, err := common.GetYamlFileFromS3(s3Session, config.S3Bucket, config.S3Key)
 	if err != nil {
@@ -45,7 +45,7 @@ func run(i *common.DBInstance) error {
 			return err
 		}
 
-		destinationRDS := rds.New(common.AWSSessions(config.SnapshotDestinationRegion))
+		destinationRDS := rds.New(common.AWSSessions(config.DestinationRegion))
 		for _, s := range snapshots {
 			err := dbinstance.CopySnapshots(destinationRDS, s)
 			if err != nil {
@@ -59,7 +59,7 @@ func run(i *common.DBInstance) error {
 		if err != nil {
 			log.WithFields(log.Fields{
 				"RDS Instance": instance.Name,
-				"AWS Region":   config.SnapshotDestinationRegion,
+				"AWS Region":   config.DestinationRegion,
 			}).Errorf("Could not get snapshots: %s", err)
 			return err
 		}
