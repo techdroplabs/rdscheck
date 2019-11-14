@@ -3,127 +3,169 @@ package main
 import (
 	"os"
 
-	"github.com/aws/aws-sdk-go/service/rds"
-	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
 	"github.com/techdroplabs/rdscheck/checks"
-	"github.com/techdroplabs/rdscheck/common"
 	"github.com/techdroplabs/rdscheck/config"
-	"github.com/techdroplabs/rdscheck/dbinstance"
+)
+
+const (
+	Ready   = "ready"
+	Restore = "restore"
+	Modify  = "modify"
+	Verify  = "verify"
+	Clean   = "clean"
+	Tested  = "tested"
+	Alarm   = "alarm"
 )
 
 func main() {
-	instance := dbinstance.NewDBInstance()
-	err := run(instance)
+	checks := checks.New()
+
+	err := run(checks)
 	if err != nil {
 		log.WithError(err).Error("Run returned:")
 		os.Exit(1)
 	}
 }
 
-func run(i *common.DBInstance) error {
-	datadog := common.DataDogSession(config.DDApiKey, config.DDAplicationKey)
-	destinationRDS := rds.New(common.AWSSessions(config.DestinationRegion))
-	s3Session := s3.New(common.AWSSessions(config.DestinationRegion))
+func run(client checks.DefaultChecks) error {
 
-	yaml, err := common.GetYamlFileFromS3(s3Session, config.S3Bucket, config.S3Key)
+	client.SetSessions(config.DestinationRegion)
+
+	yaml, err := client.GetYamlFileFromS3(config.S3Bucket, config.S3Key)
 	if err != nil {
 		log.WithError(err).Error("Could not get the yaml file from s3")
 		return err
 	}
 
-	doc, err := common.UnmarshalYamlFile(yaml)
+	doc, err := client.UnmarshalYamlFile(yaml)
 	if err != nil {
 		log.WithError(err).Error("Could not unmarshal yaml file")
 		return err
 	}
 
-	for _, doc := range doc.Instances {
-		snapshots, err := dbinstance.GetSnapshots(destinationRDS, doc.Name)
+	err = validate(client, doc)
+	if err != nil {
+		log.WithError(err).Error("Could not validate the snapshots")
+		return err
+	}
+	return nil
+}
+
+func validate(client checks.DefaultChecks, doc checks.Doc) error {
+	for _, instance := range doc.Instances {
+		snapshots, err := client.GetSnapshots(instance.Name)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"RDS Instance": doc.Name,
+				"RDS Instance": instance.Name,
 			}).Errorf("Could not get snapshots: %s", err)
 			return err
 		}
-
 		for _, snapshot := range snapshots {
-			if dbinstance.CheckTag(destinationRDS, *snapshot.DBSnapshotArn, "CreatedBy", "rdscheck") {
-				status := dbinstance.GetTagValue(destinationRDS, *snapshot.DBSnapshotArn, "Status")
+			if client.CheckTag(*snapshot.DBSnapshotArn, "CreatedBy", "rdscheck") {
+				status := client.GetTagValue(*snapshot.DBSnapshotArn, "Status")
 				switch status {
-				case "ready":
-					err := common.PostDatadogChecks(datadog, "rdscheck.status", "ok", snapshot)
+				case Ready:
+					err := client.PostDatadogChecks(snapshot, "rdscheck.status", "ok")
 					if err != nil {
 						log.WithError(err).Error("Could not update datadog status")
 					}
 
-					err = dbinstance.CreateDatabaseSubnetGroup(destinationRDS, snapshot, config.SubnetIds)
+					err = client.CreateDatabaseSubnetGroup(snapshot, config.SubnetIds)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier,
 						}).Errorf("Could not create Database Subnet Group: %s", err)
-						dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "alarm")
-						return err
+						err = client.UpdateTag(snapshot, "Status", "alarm")
+						if err != nil {
+							log.Error(err)
+						}
 					}
 
-					dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "restore")
+					err = client.UpdateTag(snapshot, "Status", "restore")
+					if err != nil {
+						log.Error(err)
+					}
 
-				case "restore":
-					err = dbinstance.CreateDBFromSnapshot(destinationRDS, snapshot, doc.Database, config.SecurityGroupIds)
+				case Restore:
+					err := client.CreateDBFromSnapshot(snapshot, instance.Database, config.SecurityGroupIds)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"Snapshot":     *snapshot.DBSnapshotIdentifier,
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Errorf("Could not create rds instance from snapshot: %s", err)
-						dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "alarm")
+						errors := client.UpdateTag(snapshot, "Status", "alarm")
+						if errors != nil {
+							log.Error(errors)
+						}
 						return err
 					}
 
-					dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "modify")
+					err = client.UpdateTag(snapshot, "Status", "modify")
+					if err != nil {
+						log.Error(err)
+					}
 
-				case "modify":
-					if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) != "available" {
+				case Modify:
+					if client.GetDBInstanceStatus(snapshot) != "available" {
 						break
 					}
 
-					dbInfo, err := dbinstance.GetDBInstanceInfo(destinationRDS, snapshot)
+					dbInfo, err := client.GetDBInstanceInfo(snapshot)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Info("Could not get RDS instance Info")
-						dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "alarm")
+						errors := client.UpdateTag(snapshot, "Status", "alarm")
+						if errors != nil {
+							log.Error(errors)
+						}
 						return err
 					}
 
-					err = dbinstance.ChangeDBpassword(destinationRDS, snapshot, *dbInfo.DBInstanceArn, doc.Password)
+					err = client.ChangeDBpassword(snapshot, *dbInfo.DBInstanceArn, instance.Password)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Info("Could not update db password")
-						dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "alarm")
+						errors := client.UpdateTag(snapshot, "Status", "alarm")
+						if errors != nil {
+							log.Error(errors)
+						}
 						return err
 					}
 
-					dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "verify")
+					err = client.UpdateTag(snapshot, "Status", "verify")
+					if err != nil {
+						log.Error(err)
+					}
 
-				case "verify":
-					if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) != "available" {
+				case Verify:
+					if client.GetDBInstanceStatus(snapshot) != "available" {
 						break
 					}
 
-					dbInfo, err := dbinstance.GetDBInstanceInfo(destinationRDS, snapshot)
+					dbInfo, err := client.GetDBInstanceInfo(snapshot)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
 						}).Info("Could not get RDS instance Info")
-						dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "alarm")
+						errors := client.UpdateTag(snapshot, "Status", "alarm")
+						if errors != nil {
+							log.Error(errors)
+						}
 						return err
 					}
 
-					if doc.Name == *dbInfo.DBName {
-						for _, query := range doc.Queries {
-							if checks.CheckSQLQueries(destinationRDS, snapshot, *dbInfo.Endpoint, *dbInfo.MasterUsername, doc.Password, *dbInfo.DBName, query.Query, query.Regex) {
-								dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "clean")
+					if instance.Name == *dbInfo.DBName {
+						for _, query := range instance.Queries {						
+							client.InitDb(*dbInfo.Endpoint, *dbInfo.MasterUsername, instance.Password, *dbInfo.DBName)
+							
+							if client.CheckSQLQueries(query.Query, query.Regex) {
+								err := client.UpdateTag(snapshot, "Status", "clean")
+								if err != nil {
+									log.Error(err)
+								}
 							} else {
 								log.WithFields(log.Fields{
 									"RDS Instance": string(*snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier),
@@ -131,24 +173,33 @@ func run(i *common.DBInstance) error {
 									"Query":        query.Query,
 									"Regex":        query.Regex,
 								}).Errorf("Query matched failed: %s", err)
-								dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "alarm")
+								errors := client.UpdateTag(snapshot, "Status", "alarm")
+								if errors != nil {
+									log.Error(errors)
+								}
 								return err
 							}
 						}
 					}
 
-				case "alarm":
-					err := common.PostDatadogChecks(datadog, "rdscheck.status", "critical", snapshot)
+				case Alarm:
+					err := client.PostDatadogChecks(snapshot, "rdscheck.status", "critical")
 					if err != nil {
 						log.WithError(err).Error("Could not update datadog status")
 					}
 
-					dbinstance.UpdateTag(destinationRDS, snapshot, "ChecksFailed", "yes")
+					err = client.UpdateTag(snapshot, "ChecksFailed", "yes")
+					if err != nil {
+						log.Error(err)
+					}
 
-					dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "clean")
+					err = client.UpdateTag(snapshot, "Status", "clean")
+					if err != nil {
+						log.Error(err)
+					}
 
-				case "clean":
-					err = dbinstance.DeleteDB(destinationRDS, snapshot)
+				case Clean:
+					err := client.DeleteDB(snapshot)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
@@ -156,18 +207,21 @@ func run(i *common.DBInstance) error {
 						return err
 					}
 
-					dbinstance.UpdateTag(destinationRDS, snapshot, "Status", "tested")
+					err = client.UpdateTag(snapshot, "Status", "tested")
+					if err != nil {
+						log.Error(err)
+					}
 
-				case "tested":
-					if dbinstance.GetDBInstanceStatus(destinationRDS, snapshot) != "" {
+				case Tested:
+					if client.GetDBInstanceStatus(snapshot) != "" {
 						break
 					}
 
-					if !dbinstance.CheckIfDatabaseSubnetGroupExist(destinationRDS, snapshot) {
+					if !client.CheckIfDatabaseSubnetGroupExist(snapshot) {
 						break
 					}
 
-					err := dbinstance.DeleteDatabaseSubnetGroup(destinationRDS, snapshot)
+					err := client.DeleteDatabaseSubnetGroup(snapshot)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"RDS Instance": *snapshot.DBInstanceIdentifier,

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+CMD="$1"
+
+CGO_ENABLED=0 \
+GOOS=linux \
+GOCACHE=$PWD/../.cache/go \
+go build -installsuffix static \
+    -o ./build/$CMD \
+    github.com/techdroplabs/rdscheck/cmd/$CMD
