@@ -1,9 +1,8 @@
-name: Go
-on: [push]
+name: ci
+on: [push, pull_request]
 jobs:
-
-  build:
-    name: Build
+  ci:
+    name: ci
     runs-on: ubuntu-latest
     steps:
 
@@ -20,7 +19,9 @@ jobs:
       run: |
         make unit
 
-    - name: Build 
-      run: | 
-        make build CMD=check
-        make build CMD=copy
+    - name: Build
+      run: |
+        make build check
+        make build copy
+
+
