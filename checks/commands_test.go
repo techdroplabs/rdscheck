@@ -125,7 +125,7 @@ func TestCopySnapshots(t *testing.T) {
 		DBSnapshot: &rds.DBSnapshot{},
 	}, nil)
 
-	err := c.CopySnapshots(input)
+	err := c.CopySnapshots(input, "us-west-2")
 	assert.Nil(t, err)
 	rdsc.AssertExpectations(t)
 
@@ -154,7 +154,7 @@ func TestGetOldSnapshots(t *testing.T) {
 		},
 	}
 
-	value, err := c.GetOldSnapshots(input)
+	value, err := c.GetOldSnapshots(input, 1)
 	assert.Nil(t, err)
 	assert.Len(t, value, 1, "Expect one old snapshots")
 	rdsc.AssertExpectations(t)
@@ -247,7 +247,7 @@ func TestCreateDBFromSnapshot(t *testing.T) {
 		DBInstance: &rds.DBInstance{},
 	}, nil)
 
-	err := c.CreateDBFromSnapshot(input, "test", "db.t2.micro", vpcsecuritygroupids)
+	err := c.CreateDBFromSnapshot(input, "db.t2.micro", vpcsecuritygroupids)
 	assert.Nil(t, err)
 	rdsc.AssertExpectations(t)
 }

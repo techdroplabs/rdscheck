@@ -50,8 +50,8 @@ var snapshots = []*rds.DBSnapshot{
 	},
 }
 
-func (m *mockDefaultChecks) CopySnapshots(snapshot *rds.DBSnapshot) error {
-	args := m.Called(snapshot)
+func (m *mockDefaultChecks) CopySnapshots(snapshot *rds.DBSnapshot, destination string) error {
+	args := m.Called(snapshot, destination)
 	return args.Error(0)
 }
 
@@ -60,8 +60,8 @@ func (m *mockDefaultChecks) GetSnapshots(DBInstanceIdentifier string) ([]*rds.DB
 	return args.Get(0).([]*rds.DBSnapshot), args.Error(1)
 }
 
-func (m *mockDefaultChecks) GetOldSnapshots(snapshots []*rds.DBSnapshot) ([]*rds.DBSnapshot, error) {
-	args := m.Called(snapshots)
+func (m *mockDefaultChecks) GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]*rds.DBSnapshot, error) {
+	args := m.Called(snapshots, retention)
 	return args.Get(0).([]*rds.DBSnapshot), args.Error(1)
 }
 
@@ -94,8 +94,8 @@ func TestRun(t *testing.T) {
 	c.On("GetYamlFileFromS3", mock.Anything, mock.Anything).Return(input, nil)
 	c.On("UnmarshalYamlFile", mock.Anything).Return(doc, nil)
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CopySnapshots", mock.Anything).Return(nil)
-	c.On("GetOldSnapshots", mock.Anything).Return(snapshots, nil)
+	c.On("CopySnapshots", mock.Anything, mock.Anything).Return(nil)
+	c.On("GetOldSnapshots", mock.Anything, mock.Anything).Return(snapshots, nil)
 	c.On("DeleteOldSnapshots", mock.Anything).Return(nil)
 
 	err := run(c, c)

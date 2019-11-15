@@ -59,10 +59,12 @@ func TestUnmarshalYamlFile(t *testing.T) {
 	doc := Doc{
 		Instances: []Instances{
 			Instances{
-				Name:     "rdscheck",
-				Database: "rdscheck",
-				Type:     "db.t2.micro",
-				Password: "thisisatest",
+				Name:        "rdscheck",
+				Database:    "rdscheck",
+				Type:        "db.t2.micro",
+				Password:    "thisisatest",
+				Retention:   1,
+				Destination: "us-east-1",
 				Queries: []Queries{
 					Queries{
 						Query: "SELECT tablename FROM pg_catalog.pg_tables;",
@@ -71,10 +73,12 @@ func TestUnmarshalYamlFile(t *testing.T) {
 				},
 			},
 			Instances{
-				Name:     "rdscheck2",
-				Database: "rdscheck2",
-				Type:     "db.t2.micro",
-				Password: "thisisatest",
+				Name:        "rdscheck2",
+				Database:    "rdscheck2",
+				Type:        "db.t2.micro",
+				Password:    "thisisatest",
+				Retention:   10,
+				Destination: "us-east-2",
 				Queries: []Queries{
 					Queries{
 						Query: "SELECT tablename FROM pg_catalog.pg_tables;",

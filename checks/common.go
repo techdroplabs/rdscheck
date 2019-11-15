@@ -25,12 +25,12 @@ type DefaultChecks interface {
 	dataDogSession(apiKey, applicationKey string) *datadog.Client
 	PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status string) error
 	GetSnapshots(DBInstanceIdentifier string) ([]*rds.DBSnapshot, error)
-	CopySnapshots(snapshot *rds.DBSnapshot) error
-	GetOldSnapshots(snapshots []*rds.DBSnapshot) ([]*rds.DBSnapshot, error)
+	CopySnapshots(snapshot *rds.DBSnapshot, destination string) error
+	GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]*rds.DBSnapshot, error)
 	DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error
 	CheckIfDatabaseSubnetGroupExist(snapshot *rds.DBSnapshot) bool
 	CreateDatabaseSubnetGroup(snapshot *rds.DBSnapshot, subnetids []string) error
-	CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname string, instancetype string, vpcsecuritygroupids []string) error
+	CreateDBFromSnapshot(snapshot *rds.DBSnapshot, instancetype string, vpcsecuritygroupids []string) error
 	DeleteDB(snapshot *rds.DBSnapshot) error
 	UpdateTag(snapshot *rds.DBSnapshot, key, value string) error
 	CheckTag(arn, key, value string) bool
@@ -56,11 +56,13 @@ type Doc struct {
 }
 
 type Instances struct {
-	Name     string
-	Database string
-	Password string
-	Type     string
-	Queries  []Queries
+	Name        string
+	Database    string
+	Type        string
+	Password    string
+	Retention   int
+	Destination string
+	Queries     []Queries
 }
 
 type Queries struct {
@@ -82,7 +84,7 @@ func New() DefaultChecks {
 // SetSessions init datadog, RDS and S3 sessions
 func (c *Client) SetSessions(region string) {
 	c.Datadog = c.dataDogSession(config.DDApiKey, config.DDAplicationKey)
-	c.S3 = s3.New(AWSSessions(config.DestinationRegion))
+	c.S3 = s3.New(AWSSessions(region))
 	c.RDS = rds.New(AWSSessions(region))
 }
 

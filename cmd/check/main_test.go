@@ -91,8 +91,8 @@ func (m *mockDefaultChecks) UpdateTag(snapshot *rds.DBSnapshot, key, value strin
 	return args.Error(0)
 }
 
-func (m *mockDefaultChecks) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname string, instancetype string, vpcsecuritygroupids []string) error {
-	args := m.Called(snapshot, dbname, instancetype, vpcsecuritygroupids)
+func (m *mockDefaultChecks) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, instancetype string, vpcsecuritygroupids []string) error {
+	args := m.Called(snapshot, instancetype, vpcsecuritygroupids)
 	return args.Error(0)
 }
 
@@ -159,7 +159,6 @@ func TestGetDoc(t *testing.T) {
 		Instances: []checks.Instances{
 			checks.Instances{
 				Name:     "rdscheck",
-				Database: "rdscheck",
 				Password: "thisisatest",
 				Queries: []checks.Queries{
 					checks.Queries{
@@ -182,6 +181,7 @@ func TestGetDoc(t *testing.T) {
 func TestValidateReady(t *testing.T) {
 	c := &mockDefaultChecks{}
 
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("ready")
@@ -198,10 +198,11 @@ func TestValidateReady(t *testing.T) {
 func TestValidateRestore(t *testing.T) {
 	c := &mockDefaultChecks{}
 
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("restore")
-	c.On("CreateDBFromSnapshot", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	c.On("CreateDBFromSnapshot", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	err := validate(c, doc)
@@ -213,6 +214,7 @@ func TestValidateRestore(t *testing.T) {
 func TestValidateModify(t *testing.T) {
 	c := &mockDefaultChecks{}
 
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("modify")
@@ -230,6 +232,7 @@ func TestValidateModify(t *testing.T) {
 func TestValidateVerify(t *testing.T) {
 	c := &mockDefaultChecks{}
 
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("verify")
@@ -248,6 +251,7 @@ func TestValidateVerify(t *testing.T) {
 func TestValidateAlarm(t *testing.T) {
 	c := &mockDefaultChecks{}
 
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("alarm")
@@ -263,6 +267,7 @@ func TestValidateAlarm(t *testing.T) {
 func TestValidateClean(t *testing.T) {
 	c := &mockDefaultChecks{}
 
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("clean")
@@ -278,6 +283,7 @@ func TestValidateClean(t *testing.T) {
 func TestValidateTested(t *testing.T) {
 	c := &mockDefaultChecks{}
 
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("tested")

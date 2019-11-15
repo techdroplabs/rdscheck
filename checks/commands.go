@@ -43,14 +43,14 @@ func (c *Client) GetSnapshots(DBInstanceIdentifier string) ([]*rds.DBSnapshot, e
 
 // CopySnapshots copies the snapshots either to the same region as the original
 // or to a new region
-func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot) error {
+func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot, destination string) error {
 
 	arn := strings.SplitN(*snapshot.DBSnapshotArn, ":", 8)
 	cleanArn := arn[len(arn)-1]
 
 	input := &rds.CopyDBSnapshotInput{
-		SourceRegion:               aws.String(config.AWSRegion),
-		DestinationRegion:          aws.String(config.DestinationRegion),
+		SourceRegion:               aws.String(config.AWSRegionSource),
+		DestinationRegion:          aws.String(destination),
 		SourceDBSnapshotIdentifier: aws.String(*snapshot.DBSnapshotArn),
 		TargetDBSnapshotIdentifier: aws.String(cleanArn),
 		Tags: []*rds.Tag{
@@ -80,9 +80,9 @@ func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot) error {
 }
 
 // GetOldSnapshots gets old snapshots based on the retention policy
-func (c *Client) GetOldSnapshots(snapshots []*rds.DBSnapshot) ([]*rds.DBSnapshot, error) {
+func (c *Client) GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]*rds.DBSnapshot, error) {
 	var oldSnapshots []*rds.DBSnapshot
-	oldDate := time.Now().AddDate(0, 0, -config.SnapshotRetention)
+	oldDate := time.Now().AddDate(0, 0, -retention)
 	for _, s := range snapshots {
 		if *s.Status != "available" {
 			continue
@@ -166,7 +166,7 @@ func (c *Client) CreateDatabaseSubnetGroup(snapshot *rds.DBSnapshot, subnetids [
 }
 
 // CreateDBFromSnapshot creates the RDS instance from a snapshot
-func (c *Client) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname, instancetype string, vpcsecuritygroupids []string) error {
+func (c *Client) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, instancetype string, vpcsecuritygroupids []string) error {
 
 	input := &rds.RestoreDBInstanceFromDBSnapshotInput{
 		AutoMinorVersionUpgrade: aws.Bool(false),
@@ -194,9 +194,6 @@ func (c *Client) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname, instance
 			},
 		},
 		VpcSecurityGroupIds: aws.StringSlice(vpcsecuritygroupids),
-	}
-	if *snapshot.Engine != "postgres" {
-		input.DBName = aws.String(dbname)
 	}
 
 	_, err := c.RDS.RestoreDBInstanceFromDBSnapshot(input)
