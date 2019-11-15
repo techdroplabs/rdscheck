@@ -7,24 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	datadog "gopkg.in/zorkian/go-datadog-api.v2"
 )
 
 type mockRDS struct {
 	rdsiface.RDSAPI
-	mock.Mock
-}
-
-type mockDatadog struct {
-	*datadog.Client
-	mock.Mock
-}
-
-type mockS3 struct {
-	s3iface.S3API
 	mock.Mock
 }
 

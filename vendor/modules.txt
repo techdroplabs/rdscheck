@@ -1,6 +1,6 @@
 # github.com/DATA-DOG/go-sqlmock v1.3.3
 github.com/DATA-DOG/go-sqlmock
-# github.com/aws/aws-sdk-go v1.25.33
+# github.com/aws/aws-sdk-go v1.25.35
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -45,11 +45,10 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/cenkalti/backoff
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542
+github.com/h2non/parth
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
-# github.com/jmoiron/sqlx v1.2.0
-github.com/jmoiron/sqlx
-github.com/jmoiron/sqlx/reflectx
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/lib/pq v1.2.0
@@ -65,9 +64,11 @@ github.com/stretchr/objx
 # github.com/stretchr/testify v1.2.2
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
-# golang.org/x/sys v0.0.0-20191110163157-d32e6e3b99c4
+# golang.org/x/sys v0.0.0-20191113165036-4c7a9d0fe056
 golang.org/x/sys/unix
+# gopkg.in/h2non/gock.v1 v1.0.15
+gopkg.in/h2non/gock.v1
 # gopkg.in/yaml.v2 v2.2.5
 gopkg.in/yaml.v2
-# gopkg.in/zorkian/go-datadog-api.v2 v2.24.0
+# gopkg.in/zorkian/go-datadog-api.v2 v2.25.0
 gopkg.in/zorkian/go-datadog-api.v2

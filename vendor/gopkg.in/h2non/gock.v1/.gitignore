@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+go.sum
 
 # Folders
 _obj
@@ -20,5 +21,10 @@ _cgo_export.*
 _testmain.go
 
 *.exe
-tags
-environ
+*.test
+*.prof
+
+.idea/
+*.iml
+*.out
+*.tmp
