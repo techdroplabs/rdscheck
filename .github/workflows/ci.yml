@@ -1,5 +1,5 @@
 name: ci
-on: [push, pull_request]
+on: [push]
 jobs:
   ci:
     name: ci
@@ -21,7 +21,7 @@ jobs:
 
     - name: Build
       run: |
-        make build check
-        make build copy
+        make build CMD=check
+        make build CMD=copy
 
 
