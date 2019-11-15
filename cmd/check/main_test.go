@@ -1,6 +1,9 @@
 package main
 
 import (
+	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -130,6 +133,50 @@ func (m *mockDefaultChecks) DeleteDatabaseSubnetGroup(snapshot *rds.DBSnapshot) 
 
 func (m *mockDefaultChecks) InitDb(endpoint rds.Endpoint, user, password, dbname string) {
 	m.Called(endpoint, user, password, dbname)
+}
+
+func (m *mockDefaultChecks) SetSessions(region string) {
+	m.Called(region)
+}
+
+func (m *mockDefaultChecks) GetYamlFileFromS3(bucket string, key string) (io.Reader, error) {
+	args := m.Called(bucket, key)
+	return args.Get(0).(io.Reader), args.Error(1)
+}
+
+func (m *mockDefaultChecks) UnmarshalYamlFile(body io.Reader) (checks.Doc, error) {
+	args := m.Called(body)
+	return args.Get(0).(checks.Doc), args.Error(1)
+}
+
+func TestGetDoc(t *testing.T) {
+	c := &mockDefaultChecks{}
+
+	file, _ := os.Open("../example/checks.yaml")
+	output := ioutil.NopCloser(file)
+
+	doc := checks.Doc{
+		Instances: []checks.Instances{
+			checks.Instances{
+				Name:     "rdscheck",
+				Database: "rdscheck",
+				Password: "thisisatest",
+				Queries: []checks.Queries{
+					checks.Queries{
+						Query: "SELECT tablename FROM pg_catalog.pg_tables;",
+						Regex: "^pg_statistic$",
+					},
+				},
+			},
+		},
+	}
+
+	c.On("SetSessions", mock.Anything).Return()
+	c.On("GetYamlFileFromS3", mock.Anything, mock.Anything).Return(output, nil)
+	c.On("UnmarshalYamlFile", mock.Anything).Return(doc, nil)
+
+	_, err := getDoc(c)
+	assert.Nil(t, err)
 }
 
 func TestValidateReady(t *testing.T) {

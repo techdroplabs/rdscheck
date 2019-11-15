@@ -21,35 +21,36 @@ const (
 func main() {
 	checks := checks.New()
 
-	err := run(checks)
+	doc, err := getDoc(checks)
 	if err != nil {
-		log.WithError(err).Error("Run returned:")
+		log.WithError(err).Error("Could not get the doc")
 		os.Exit(1)
+	}
+
+	err = validate(checks, doc)
+	if err != nil {
+		log.WithError(err).Error("Could not validate the snapshots")
 	}
 }
 
-func run(client checks.DefaultChecks) error {
+func getDoc(client checks.DefaultChecks) (checks.Doc, error) {
 
 	client.SetSessions(config.DestinationRegion)
+
+	doc := checks.Doc{}
 
 	yaml, err := client.GetYamlFileFromS3(config.S3Bucket, config.S3Key)
 	if err != nil {
 		log.WithError(err).Error("Could not get the yaml file from s3")
-		return err
+		return doc, err
 	}
 
-	doc, err := client.UnmarshalYamlFile(yaml)
+	doc, err = client.UnmarshalYamlFile(yaml)
 	if err != nil {
 		log.WithError(err).Error("Could not unmarshal yaml file")
-		return err
+		return doc, err
 	}
-
-	err = validate(client, doc)
-	if err != nil {
-		log.WithError(err).Error("Could not validate the snapshots")
-		return err
-	}
-	return nil
+	return doc, nil
 }
 
 func validate(client checks.DefaultChecks, doc checks.Doc) error {
@@ -158,9 +159,9 @@ func validate(client checks.DefaultChecks, doc checks.Doc) error {
 					}
 
 					if instance.Name == *dbInfo.DBName {
-						for _, query := range instance.Queries {						
+						for _, query := range instance.Queries {
 							client.InitDb(*dbInfo.Endpoint, *dbInfo.MasterUsername, instance.Password, *dbInfo.DBName)
-							
+
 							if client.CheckSQLQueries(query.Query, query.Regex) {
 								err := client.UpdateTag(snapshot, "Status", "clean")
 								if err != nil {
