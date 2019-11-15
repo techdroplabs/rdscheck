@@ -44,7 +44,7 @@ func TestGetYamlFileFromS3(t *testing.T) {
 	values, err := c.GetYamlFileFromS3("test-bucket", "checks.yaml")
 	assert.Nil(t, err)
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(values)
+	_, _ = buf.ReadFrom(values)
 	valuesToString := buf.String()
 	assert.Contains(t, valuesToString, "thisisatest")
 	s3c.AssertExpectations(t)
@@ -61,6 +61,7 @@ func TestUnmarshalYamlFile(t *testing.T) {
 			Instances{
 				Name:     "rdscheck",
 				Database: "rdscheck",
+				Type:     "db.t2.micro",
 				Password: "thisisatest",
 				Queries: []Queries{
 					Queries{
@@ -72,6 +73,7 @@ func TestUnmarshalYamlFile(t *testing.T) {
 			Instances{
 				Name:     "rdscheck2",
 				Database: "rdscheck2",
+				Type:     "db.t2.micro",
 				Password: "thisisatest",
 				Queries: []Queries{
 					Queries{

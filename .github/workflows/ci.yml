@@ -15,9 +15,11 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
 
+    - name: Lint Tests
+      run: make lint
+
     - name: Unit Tests
-      run: |
-        make unit
+      run: make unit
 
     - name: Build
       run: |

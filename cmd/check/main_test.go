@@ -91,8 +91,8 @@ func (m *mockDefaultChecks) UpdateTag(snapshot *rds.DBSnapshot, key, value strin
 	return args.Error(0)
 }
 
-func (m *mockDefaultChecks) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname string, vpcsecuritygroupids []string) error {
-	args := m.Called(snapshot, dbname, vpcsecuritygroupids)
+func (m *mockDefaultChecks) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname string, instancetype string, vpcsecuritygroupids []string) error {
+	args := m.Called(snapshot, dbname, instancetype, vpcsecuritygroupids)
 	return args.Error(0)
 }
 
@@ -201,7 +201,7 @@ func TestValidateRestore(t *testing.T) {
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("restore")
-	c.On("CreateDBFromSnapshot", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	c.On("CreateDBFromSnapshot", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	err := validate(c, doc)

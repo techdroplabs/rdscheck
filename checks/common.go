@@ -30,7 +30,7 @@ type DefaultChecks interface {
 	DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error
 	CheckIfDatabaseSubnetGroupExist(snapshot *rds.DBSnapshot) bool
 	CreateDatabaseSubnetGroup(snapshot *rds.DBSnapshot, subnetids []string) error
-	CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname string, vpcsecuritygroupids []string) error
+	CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname string, instancetype string, vpcsecuritygroupids []string) error
 	DeleteDB(snapshot *rds.DBSnapshot) error
 	UpdateTag(snapshot *rds.DBSnapshot, key, value string) error
 	CheckTag(arn, key, value string) bool
@@ -59,6 +59,7 @@ type Instances struct {
 	Name     string
 	Database string
 	Password string
+	Type     string
 	Queries  []Queries
 }
 

@@ -84,11 +84,6 @@ func (m *mockDefaultChecks) UnmarshalYamlFile(body io.Reader) (checks.Doc, error
 	return args.Get(0).(checks.Doc), args.Error(1)
 }
 
-func (m *mockDefaultChecks) copy(destination checks.DefaultChecks, snapshots []*rds.DBSnapshot, instance checks.Instances) error {
-	args := m.Called(destination, snapshots, instance)
-	return args.Error(0)
-}
-
 func TestRun(t *testing.T) {
 	c := &mockDefaultChecks{}
 

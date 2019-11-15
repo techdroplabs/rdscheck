@@ -1,6 +1,6 @@
 # rdscheck
-Copy snapshots to a different AWS region and restore them to check their integrity 
+Copy snapshots to a different AWS region, crates a new rds with 
 
-# checks: state machine diagram
+# check: state machine diagram
 
 ![state machine](/img/state-machine.png)

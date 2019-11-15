@@ -166,11 +166,11 @@ func (c *Client) CreateDatabaseSubnetGroup(snapshot *rds.DBSnapshot, subnetids [
 }
 
 // CreateDBFromSnapshot creates the RDS instance from a snapshot
-func (c *Client) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname string, vpcsecuritygroupids []string) error {
+func (c *Client) CreateDBFromSnapshot(snapshot *rds.DBSnapshot, dbname, instancetype string, vpcsecuritygroupids []string) error {
 
 	input := &rds.RestoreDBInstanceFromDBSnapshotInput{
 		AutoMinorVersionUpgrade: aws.Bool(false),
-		DBInstanceClass:         aws.String("db.t2.micro"),
+		DBInstanceClass:         aws.String(instancetype),
 		DBInstanceIdentifier:    aws.String(*snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier),
 		DBSnapshotIdentifier:    aws.String(*snapshot.DBSnapshotIdentifier),
 		DBSubnetGroupName:       aws.String(*snapshot.DBSnapshotIdentifier),

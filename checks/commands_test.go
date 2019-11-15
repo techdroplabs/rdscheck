@@ -247,7 +247,7 @@ func TestCreateDBFromSnapshot(t *testing.T) {
 		DBInstance: &rds.DBInstance{},
 	}, nil)
 
-	err := c.CreateDBFromSnapshot(input, "test", vpcsecuritygroupids)
+	err := c.CreateDBFromSnapshot(input, "test", "db.t2.micro", vpcsecuritygroupids)
 	assert.Nil(t, err)
 	rdsc.AssertExpectations(t)
 }

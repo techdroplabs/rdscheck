@@ -89,7 +89,7 @@ func validate(client checks.DefaultChecks, doc checks.Doc) error {
 					}
 
 				case Restore:
-					err := client.CreateDBFromSnapshot(snapshot, instance.Database, config.SecurityGroupIds)
+					err := client.CreateDBFromSnapshot(snapshot, instance.Database, instance.Type, config.SecurityGroupIds)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"Snapshot":     *snapshot.DBSnapshotIdentifier,
