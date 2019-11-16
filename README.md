@@ -58,7 +58,7 @@ By doing so we can then download the command zip file for a release and use it w
 ```hcl
 
 module "rdscheck-copy" {
-  source = git::git@github.com:techdroplabs/rdscheck.git?ref=v0.0.1
+  source = git::git@github.com:techdroplabs/rdscheck.git//terraform?ref=v0.0.1
 
   lambda_rate = "rate(1 day)
   release_version = "v0.0.1"

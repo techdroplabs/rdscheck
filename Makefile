@@ -11,3 +11,7 @@ build:
 lint:
 	./scripts/tests/lint
 .PHONY: lint
+
+terraform:
+	./scripts/tests/terraform $(CMD)
+.PHONY: terraform

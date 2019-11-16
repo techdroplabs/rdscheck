@@ -6,7 +6,8 @@ CMD="$1"
 
 CGO_ENABLED=0 \
 GOOS=linux \
+GOARCH=amd64 \
 GOCACHE=$PWD/../.cache/go \
 go build -installsuffix static \
-    -o ./build/$CMD \
+    -o ./build/$CMD/main \
     github.com/techdroplabs/rdscheck/cmd/$CMD

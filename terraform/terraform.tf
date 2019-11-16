@@ -33,13 +33,13 @@ resource "aws_lambda_function" "rdscheck_lambda" {
   timeout          = 300
   environment {
     variables = {
-      S3_BUCKET = "${var.s3_bucket}"
-      S3_KEY = "${var.s3_key}"
+      S3_BUCKET         = "${var.s3_bucket}"
+      S3_KEY            = "${var.s3_key}"
       AWS_REGION_SOURCE = "${var.aws_region_source}"
-      AWS_SG_IDS = "${var.aws_sg_ids}"
-      AWS_SUBNETS_IDS = "${var.aws_subnets_ids}"
-      DD_API_KEY = "${var.dd_api_key}"
-      DD_APP_KEY = "${var.dd_app_key}"
+      AWS_SG_IDS        = "${var.aws_sg_ids}"
+      AWS_SUBNETS_IDS   = "${var.aws_subnets_ids}"
+      DD_API_KEY        = "${var.dd_api_key}"
+      DD_APP_KEY        = "${var.dd_app_key}"
     }
   }
 }
@@ -61,22 +61,22 @@ data "aws_iam_policy" "AmazonRDSFullAccess" {
 }
 
 resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonEC2ReadOnlyAccess_policy_attach" {
-  role = "${aws_iam_role.rdscheck_iam_role.name}"
+  role       = "${aws_iam_role.rdscheck_iam_role.name}"
   policy_arn = "${data.aws_iam_policy.AmazonEC2ReadOnlyAccess.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "rdscheck_role_CloudWatchFullAccess_policy_attach" {
-  role = "${aws_iam_role.rdscheck_iam_role.name}"
+  role       = "${aws_iam_role.rdscheck_iam_role.name}"
   policy_arn = "${data.aws_iam_policy.CloudWatchFullAccess.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonS3ReadOnlyAccess_policy_attach" {
-  role = "${aws_iam_role.rdscheck_iam_role.name}"
+  role       = "${aws_iam_role.rdscheck_iam_role.name}"
   policy_arn = "${data.aws_iam_policy.AmazonS3ReadOnlyAccess.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonRDSFullAccess_policy_attach" {
-  role = "${aws_iam_role.rdscheck_iam_role.name}"
+  role       = "${aws_iam_role.rdscheck_iam_role.name}"
   policy_arn = "${data.aws_iam_policy.AmazonRDSFullAccess.arn}"
 }
 
@@ -87,16 +87,16 @@ resource "aws_cloudwatch_event_rule" "rdscheck_rule" {
 }
 
 resource "aws_cloudwatch_event_target" "rdscheck_target" {
-  rule      = "${aws_cloudwatch_event_rule.rdscheck_rule.name}"
-  arn       = "${aws_lambda_function.rdscheck_lambda.arn}"
+  rule = "${aws_cloudwatch_event_rule.rdscheck_rule.name}"
+  arn  = "${aws_lambda_function.rdscheck_lambda.arn}"
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_to_call_rdscheck" {
-    statement_id = "AllowExecutionFromCloudWatch"
-    action = "lambda:InvokeFunction"
-    function_name = "${aws_lambda_function.rdscheck_lambda.function_name}"
-    principal = "events.amazonaws.com"
-    source_arn = "${aws_cloudwatch_event_rule.rdscheck_rule.arn}"
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.rdscheck_lambda.function_name}"
+  principal     = "events.amazonaws.com"
+  source_arn    = "${aws_cloudwatch_event_rule.rdscheck_rule.arn}"
 }
 
 variable "lambda_rate" {
