@@ -84,7 +84,7 @@ func (m *mockDefaultChecks) UnmarshalYamlFile(body io.Reader) (checks.Doc, error
 	return args.Get(0).(checks.Doc), args.Error(1)
 }
 
-func TestRun(t *testing.T) {
+func TestCopy(t *testing.T) {
 	c := &mockDefaultChecks{}
 
 	yaml, _ := ioutil.ReadFile("../../example/checks.yaml")
@@ -98,7 +98,7 @@ func TestRun(t *testing.T) {
 	c.On("GetOldSnapshots", mock.Anything, mock.Anything).Return(snapshots, nil)
 	c.On("DeleteOldSnapshots", mock.Anything).Return(nil)
 
-	err := run(c, c)
+	err := copy(c, c)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)

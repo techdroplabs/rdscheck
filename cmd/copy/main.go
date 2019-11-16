@@ -3,23 +3,28 @@ package main
 import (
 	"os"
 
+	"github.com/aws/aws-lambda-go/lambda"
 	log "github.com/sirupsen/logrus"
 	"github.com/techdroplabs/rdscheck/checks"
 	"github.com/techdroplabs/rdscheck/config"
 )
 
 func main() {
+	lambda.Start(run)
+}
+
+func run() {
 	source := checks.New()
 	destination := checks.New()
 
-	err := run(source, destination)
+	err := copy(source, destination)
 	if err != nil {
 		log.WithError(err).Error("Run returned:")
 		os.Exit(1)
 	}
 }
 
-func run(source checks.DefaultChecks, destination checks.DefaultChecks) error {
+func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 	source.SetSessions(config.AWSRegionSource)
 
 	yaml, err := source.GetYamlFileFromS3(config.S3Bucket, config.S3Key)

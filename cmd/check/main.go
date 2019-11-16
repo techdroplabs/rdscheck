@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/techdroplabs/rdscheck/checks"
 	"github.com/techdroplabs/rdscheck/config"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 const (
@@ -19,6 +20,10 @@ const (
 )
 
 func main() {
+	lambda.Start(run)
+}
+
+func run() {
 	source := checks.New()
 	destination := checks.New()
 

@@ -1,0 +1,63 @@
+on:
+  push:
+    tags:
+    - 'v*'
+
+name: Create Release on Tag
+
+jobs:
+  build:
+    name: Upload Release Asset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Lint Tests
+        run: make lint
+
+      - name: Unit Tests
+        run: make unit
+
+      - name: Build
+        run: |
+          make build CMD=check
+          make build CMD=copy
+
+      - name: zip builds
+        run: |
+          zip --junk-paths ./build/check check
+          zip --junk-paths ./build/copy copy
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: "false"
+          prerelease: "false"
+
+      - name: Upload Check Asset
+        id: upload-check-asset 
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: ./check.zip
+          asset_name: check.zip
+          asset_content_type: application/zip
+
+      - name: Upload Copy Asset
+        id: upload-copy-asset 
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: ./copy.zip
+          asset_name: copy.zip
+          asset_content_type: application/zip

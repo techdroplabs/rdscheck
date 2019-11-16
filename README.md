@@ -46,3 +46,30 @@ instances:
       - query: "SELECT tablename FROM pg_catalog.pg_tables;"
         regex: "^pg_statistic$"
 ```
+
+## Releases
+
+Github Workflow is setup to create a new release when a tag is created and pushed.
+[.github/workflows/release.yml](.github/workflows/release.yml) will get triggered, will create a new release, build the commands and upload them as two seperate zip files in the release.
+By doing so we can then download the command zip file for a release and use it when creating a lambda function with terraform.
+
+## Terraform
+
+```hcl
+
+module "rdscheck-copy" {
+  source = git::git@github.com:techdroplabs/rdscheck.git?ref=v0.0.1
+
+  lambda_rate = "rate(1 day)
+  release_version = "v0.0.1"
+  command_name = "copy"
+  s3_bucket = "s3-bucket-with-yaml-file"
+  s3_key = "rdscheck.yaml"
+  aws_region_source = "us-west-2"
+  aws_sg_ids = "sg-1234,sg-5678"
+  aws_subnets_ids = "subnet-qwerty1234576,subnet-azerty123456"
+  dd_api_key = "lked78t4iuhweoih8oi"
+  dd_app_key = "lknsdc8754liwhefp90"
+}
+
+```
