@@ -11,6 +11,6 @@ docker run --rm -i \
 -e GOOS=linux \
 -e GOARCH=amd64 \
 golang:1.13.4-buster \
-go build -installsuffix static \
+go build -mod=vendor -installsuffix static \
 -o ./build/$CMD/main \
 github.com/techdroplabs/rdscheck/cmd/$CMD

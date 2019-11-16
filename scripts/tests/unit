@@ -6,4 +6,4 @@ docker run --rm -i \
 -v "$PWD":/go/src/github.com/techdroplabs/rdscheck/ \
 -w /go/src/github.com/techdroplabs/rdscheck \
 golang:1.13.4-buster \
-go test -cover -race github.com/techdroplabs/rdscheck/... -run .
+go test -mod=vendor -cover -race github.com/techdroplabs/rdscheck/... -run .
