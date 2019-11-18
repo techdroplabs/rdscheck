@@ -55,6 +55,7 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 				log.WithFields(log.Fields{
 					"Snapshot": *snapshot.DBSnapshotIdentifier,
 				}).Errorf("Could not copy snapshot: %s", err)
+				return err
 			}
 		}
 

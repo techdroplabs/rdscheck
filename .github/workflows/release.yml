@@ -26,8 +26,8 @@ jobs:
 
       - name: zip builds
         run: |
-          zip --junk-paths ./build/check/main check
-          zip --junk-paths ./build/copy/main copy
+          zip --junk-paths check.zip ./build/check/main
+          zip --junk-paths copy.zip ./build/copy/main
 
       - name: Create Release
         id: create_release

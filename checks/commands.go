@@ -74,7 +74,19 @@ func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot, destination string) err
 	}
 	_, err := c.RDS.CopyDBSnapshot(input)
 	if err != nil {
-		return err
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case rds.ErrCodeDBSnapshotAlreadyExistsFault:
+				log.WithFields(log.Fields{
+					"Snapshot": *snapshot.DBSnapshotIdentifier,
+				}).Info("Snapshot already exist")
+				return nil
+			default:
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	return nil
 }
