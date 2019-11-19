@@ -1,5 +1,5 @@
 resource "aws_iam_role" "rdscheck_iam_role" {
-  name = "rdscheck_role"
+  name = "rdscheck_copy_role"
 
   assume_role_policy = <<EOF
 {
@@ -18,16 +18,22 @@ resource "aws_iam_role" "rdscheck_iam_role" {
 EOF
 }
 
-data "http" "get_command_release" {
-  url = "https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command_name}.zip"
+resource "null_resource" "get_release" {
+  provisioner "local-exec" {
+    command = "wget -O check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/copy.zip"
+  }
+  # We do that so null_resource is called everytime we run terraform apply or plan
+  triggers = {
+    always_run = "${timestamp()}"
+  }
 }
 
 resource "aws_lambda_function" "rdscheck_lambda" {
-  filename         = "${path.module}/${var.command_name}.zip"
-  function_name    = "${var.command_name}-rdscheck"
+  filename         = "copy.zip"
+  function_name    = "copy-rdscheck"
   role             = "${aws_iam_role.rdscheck_iam_role.arn}"
   handler          = "main"
-  source_code_hash = "${base64sha256(file("${var.command_name}.zip"))}"
+  source_code_hash = "${base64sha256(file("copy.zip"))}"
   runtime          = "go1.x"
   memory_size      = 128
   timeout          = 60
@@ -36,16 +42,11 @@ resource "aws_lambda_function" "rdscheck_lambda" {
       S3_BUCKET         = "${var.s3_bucket}"
       S3_KEY            = "${var.s3_key}"
       AWS_REGION_SOURCE = "${var.aws_region_source}"
-      AWS_SG_IDS        = "${var.aws_sg_ids}"
-      AWS_SUBNETS_IDS   = "${var.aws_subnets_ids}"
       DD_API_KEY        = "${var.dd_api_key}"
       DD_APP_KEY        = "${var.dd_app_key}"
     }
   }
-}
-
-data "aws_iam_policy" "AWSLambdaVPCAccessExecutionRole" {
-  arn = "arn:aws:iam::aws:policy/AWSLambdaVPCAccessExecutionRole"
+  depends_on = ["${null_resource.get_release}"]
 }
 
 data "aws_iam_policy" "CloudWatchFullAccess" {
@@ -58,11 +59,6 @@ data "aws_iam_policy" "AmazonS3ReadOnlyAccess" {
 
 data "aws_iam_policy" "AmazonRDSFullAccess" {
   arn = "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "rdscheck_role_AWSLambdaVPCAccessExecutionRole_policy_attach" {
-  role       = "${aws_iam_role.rdscheck_iam_role.name}"
-  policy_arn = "${data.aws_iam_policy.AWSLambdaVPCAccessExecutionRole.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "rdscheck_role_CloudWatchFullAccess_policy_attach" {
@@ -81,7 +77,7 @@ resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonRDSFullAccess_pol
 }
 
 resource "aws_cloudwatch_event_rule" "rdscheck_rule" {
-  name                = "rdscheck_rule"
+  name                = "rdscheck_copy_rule"
   schedule_expression = "${var.lambda_rate}"
   is_enabled          = true
 }
@@ -105,17 +101,11 @@ variable "lambda_rate" {
 
 variable "release_version" {}
 
-variable "command_name" {}
-
 variable "s3_bucket" {}
 
 variable "s3_key" {}
 
 variable "aws_region_source" {}
-
-variable "aws_sg_ids" {}
-
-variable "aws_subnets_ids" {}
 
 variable "dd_api_key" {}
 

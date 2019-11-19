@@ -1,5 +1,5 @@
 resource "aws_iam_role" "rdscheck_iam_role" {
-  name = "rdscheck_role"
+  name = "rdscheck_check_role"
 
   assume_role_policy = <<EOF
 {
@@ -18,19 +18,25 @@ resource "aws_iam_role" "rdscheck_iam_role" {
 EOF
 }
 
-data "http" "get_command_release" {
-  url = "https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command_name}.zip"
+resource "null_resource" "get_release" {
+  provisioner "local-exec" {
+    command = "wget -O check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/check.zip"
+  }
+  # We do that so null_resource is called everytime we run terraform apply or plan
+  triggers = {
+    always_run = "${timestamp()}"
+  }
 }
 
 resource "aws_lambda_function" "rdscheck_lambda" {
-  filename         = "${path.module}/${var.command_name}.zip"
-  function_name    = "${var.command_name}-rdscheck"
+  filename         = "check.zip"
+  function_name    = "check-rdscheck"
   role             = "${aws_iam_role.rdscheck_iam_role.arn}"
   handler          = "main"
-  source_code_hash = "${base64sha256(file("${var.command_name}.zip"))}"
+  source_code_hash = "${base64sha256(file("check.zip"))}"
   runtime          = "go1.x"
   memory_size      = 128
-  timeout          = 60
+  timeout          = 120
   environment {
     variables = {
       S3_BUCKET         = "${var.s3_bucket}"
@@ -42,6 +48,7 @@ resource "aws_lambda_function" "rdscheck_lambda" {
       DD_APP_KEY        = "${var.dd_app_key}"
     }
   }
+  depends_on = ["${null_resource.get_command_release}"]
 }
 
 data "aws_iam_policy" "AWSLambdaVPCAccessExecutionRole" {
@@ -81,7 +88,7 @@ resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonRDSFullAccess_pol
 }
 
 resource "aws_cloudwatch_event_rule" "rdscheck_rule" {
-  name                = "rdscheck_rule"
+  name                = "rdscheck_check_rule"
   schedule_expression = "${var.lambda_rate}"
   is_enabled          = true
 }
@@ -100,12 +107,10 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_rdscheck" {
 }
 
 variable "lambda_rate" {
-  default = "rate(1 day)"
+  default = "rate(30 minutes)"
 }
 
 variable "release_version" {}
-
-variable "command_name" {}
 
 variable "s3_bucket" {}
 
