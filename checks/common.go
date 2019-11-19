@@ -14,8 +14,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/techdroplabs/rdscheck/config"
 	"github.com/techdroplabs/rdscheck/utils"
+	datadog "github.com/zorkian/go-datadog-api"
 	"gopkg.in/yaml.v2"
-	datadog "gopkg.in/zorkian/go-datadog-api.v2"
 )
 
 type DefaultChecks interface {

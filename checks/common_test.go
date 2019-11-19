@@ -12,8 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	datadog "github.com/zorkian/go-datadog-api"
 	"gopkg.in/h2non/gock.v1"
-	datadog "gopkg.in/zorkian/go-datadog-api.v2"
 )
 
 type mockS3 struct {
