@@ -340,8 +340,17 @@ func (c *Client) GetDBInstanceStatus(snapshot *rds.DBSnapshot) string {
 	}
 	o, err := c.RDS.DescribeDBInstances(input)
 	if err != nil {
-		log.WithError(err).Error("GetDBInstanceStatus failed to DescribeDBInstances")
-		return ""
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case rds.ErrCodeDBInstanceNotFoundFault:
+				return ""
+			default:
+				return ""
+			}
+		} else {
+			log.WithError(err).Error("GetDBInstanceStatus failed to DescribeDBInstances")
+			return ""
+		}
 	}
 	for _, db := range o.DBInstances {
 		return *db.DBInstanceStatus

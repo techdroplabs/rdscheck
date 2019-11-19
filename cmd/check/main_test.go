@@ -111,7 +111,7 @@ func (m *mockDefaultChecks) ChangeDBpassword(snapshot *rds.DBSnapshot, DBArn, pa
 	return args.Error(0)
 }
 
-func (m *mockDefaultChecks) CheckSQLQueries(query, regex string) bool {
+func (m *mockDefaultChecks) CheckRegexAgainstRow(query, regex string) bool {
 	args := m.Called(query, regex)
 	return args.Bool(0)
 }
@@ -239,7 +239,7 @@ func TestValidateVerify(t *testing.T) {
 	c.On("GetDBInstanceStatus", mock.Anything).Return("available")
 	c.On("GetDBInstanceInfo", mock.Anything).Return(rdsInstance, nil)
 	c.On("InitDb", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
-	c.On("CheckSQLQueries", mock.Anything, mock.Anything).Return(true)
+	c.On("CheckRegexAgainstRow", mock.Anything, mock.Anything).Return(true)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	err := validate(c, doc)

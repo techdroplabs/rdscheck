@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
+	"github.com/aws/aws-lambda-go/lambda"
 	log "github.com/sirupsen/logrus"
 	"github.com/techdroplabs/rdscheck/checks"
 	"github.com/techdroplabs/rdscheck/config"
-	"github.com/aws/aws-lambda-go/lambda"
 )
 
 const (
@@ -164,11 +164,11 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 						return err
 					}
 
+					destination.InitDb(*dbInfo.Endpoint, *dbInfo.MasterUsername, instance.Password, instance.Database)
+
 					if instance.Name == *dbInfo.DBName {
 						for _, query := range instance.Queries {
-							destination.InitDb(*dbInfo.Endpoint, *dbInfo.MasterUsername, instance.Password, *dbInfo.DBName)
-
-							if destination.CheckSQLQueries(query.Query, query.Regex) {
+							if destination.CheckRegexAgainstRow(query.Query, query.Regex) {
 								err := destination.UpdateTag(snapshot, "Status", "clean")
 								if err != nil {
 									log.Error(err)

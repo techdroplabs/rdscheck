@@ -39,8 +39,8 @@ type DefaultChecks interface {
 	ChangeDBpassword(snapshot *rds.DBSnapshot, DBArn, password string) error
 	GetDBInstanceStatus(snapshot *rds.DBSnapshot) string
 	GetTagValue(arn, key string) string
-	CheckSQLQueries(query, regex string) bool
 	InitDb(endpoint rds.Endpoint, user, password, dbname string)
+	CheckRegexAgainstRow(query, regex string) bool
 }
 
 type Client struct {

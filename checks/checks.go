@@ -12,7 +12,6 @@ import (
 )
 
 func (c *Client) InitDb(endpoint rds.Endpoint, user, password, dbname string) {
-
 	port := strconv.FormatInt(*endpoint.Port, 10)
 	host := *endpoint.Address
 
@@ -32,23 +31,32 @@ func (c *Client) InitDb(endpoint rds.Endpoint, user, password, dbname string) {
 		log.WithError(err).Error("Couldn't ping postgres database")
 		return
 	}
-
-	defer c.DB.Close()
 }
 
-// CheckSQLQueries takes a regex, a sql query and compare the result of the query
-// against the regex
-func (c *Client) CheckSQLQueries(query, regex string) bool {
+func (c *Client) CheckRegexAgainstRow(query, regex string) bool {
 
-	var result string
 	rows, err := c.DB.Query(query)
 	if err != nil {
 		log.WithError(err).Error("Could not return db rows")
+		return false
 	}
 	defer rows.Close()
 
+	cols, _ := rows.Columns()
+
+	data := make(map[string]string)
+
 	for rows.Next() {
-		err := rows.Scan(&result)
+		columns := make([]string, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+		err := rows.Scan(columnPointers...)
+
+		for i, colName := range cols {
+			data[colName] = columns[i]
+		}
 
 		if err == sql.ErrNoRows {
 			log.WithError(err).Error("No Results Found")
@@ -59,12 +67,21 @@ func (c *Client) CheckSQLQueries(query, regex string) bool {
 			log.WithError(err).Error("Could not scan db rows")
 			return false
 		}
-	}
 
-	matched, err := regexp.MatchString(regex, result)
-	if err != nil {
-		log.WithError(err).Error("Could not check regex against result")
-		return false
+		for _, result := range data {
+			value, err := regexp.MatchString(regex, result)
+			if err != nil {
+				log.WithError(err).Error("Could not check regex against result")
+				return false
+			}
+			for value {
+				log.WithFields(log.Fields{
+					"regex":  regex,
+					"result": result,
+				}).Info("Found a match")
+				break
+			}
+		}
 	}
-	return matched
+	return true
 }

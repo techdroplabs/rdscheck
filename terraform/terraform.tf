@@ -30,7 +30,7 @@ resource "aws_lambda_function" "rdscheck_lambda" {
   source_code_hash = "${base64sha256(file("${var.command_name}.zip"))}"
   runtime          = "go1.x"
   memory_size      = 128
-  timeout          = 300
+  timeout          = 60
   environment {
     variables = {
       S3_BUCKET         = "${var.s3_bucket}"
@@ -44,8 +44,8 @@ resource "aws_lambda_function" "rdscheck_lambda" {
   }
 }
 
-data "aws_iam_policy" "AmazonEC2ReadOnlyAccess" {
-  arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+data "aws_iam_policy" "AWSLambdaVPCAccessExecutionRole" {
+  arn = "arn:aws:iam::aws:policy/AWSLambdaVPCAccessExecutionRole"
 }
 
 data "aws_iam_policy" "CloudWatchFullAccess" {
@@ -60,9 +60,9 @@ data "aws_iam_policy" "AmazonRDSFullAccess" {
   arn = "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
 }
 
-resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonEC2ReadOnlyAccess_policy_attach" {
+resource "aws_iam_role_policy_attachment" "rdscheck_role_AWSLambdaVPCAccessExecutionRole_policy_attach" {
   role       = "${aws_iam_role.rdscheck_iam_role.name}"
-  policy_arn = "${data.aws_iam_policy.AmazonEC2ReadOnlyAccess.arn}"
+  policy_arn = "${data.aws_iam_policy.AWSLambdaVPCAccessExecutionRole.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "rdscheck_role_CloudWatchFullAccess_policy_attach" {
