@@ -11,17 +11,35 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var engineType = map[string]string{
+	"postgres": "postgres",
+}
+
+var engineConnection = map[string]string{
+	"postgres": "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+}
+
 // InitDb initialize the database connection
 func (c *Client) InitDb(db *rds.DBInstance, password, dbname string) {
 	port := strconv.FormatInt(*db.Endpoint.Port, 10)
 	host := *db.Endpoint.Address
-	engine := *db.Engine
+	rdsEngine := *db.Engine
 	user := *db.MasterUsername
 
+	var engine string
+
+	if v, ok := engineType[rdsEngine]; ok {
+		engine = v
+	}
+
+	var args string
+
+	if e, ok := engineConnection[rdsEngine]; ok {
+		args = fmt.Sprintf(e,
+			host, port, user, password, dbname)
+	}
+
 	var err error
-	args := fmt.Sprintf("host=%s port=%s user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
 
 	c.DB, err = sql.Open(engine, args)
 	if err != nil {
