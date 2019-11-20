@@ -38,7 +38,7 @@ resource "aws_lambda_function" "rdscheck_lambda" {
   runtime          = "go1.x"
   memory_size      = 128
   timeout          = 120
-  environment      = ["${slice(list(var.lambda_env_vars), 0, length(var.lambda_env_vars) == 0 ? 0 : 1 )}"]
+  environment      = ["${slice(list(var.lambda_env_vars), 0, length(var.lambda_env_vars) == 0 ? 0 : 1)}"]
   depends_on       = ["${null_resource.get_command_release}"]
 }
 
