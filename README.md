@@ -58,16 +58,18 @@ By doing so we can then download the command zip file for a release and use it w
 ```hcl
 
 module "rdscheck-copy" {
-  source = git::git@github.com:techdroplabs/rdscheck.git//terraform/copy?ref=v0.0.1
+  source = git::git@github.com:techdroplabs/rdscheck.git//terraform?ref=v0.0.1
 
   lambda_rate = "rate(1 day)
   release_version = "v0.0.1"
-  command_name = "copy"
-  s3_bucket = "s3-bucket-with-yaml-file"
-  s3_key = "rdscheck.yaml"
-  aws_region_source = "us-west-2"
-  dd_api_key = "lked78t4iuhweoih8oi"
-  dd_app_key = "lknsdc8754liwhefp90"
+  command = "copy"
+  environment {
+    variables = {
+      S3_BUCKET         = "s3-bucket-with-yaml-file"
+      S3_KEY            = "rdscheck.yaml"
+      AWS_REGION_SOURCE = "us-west-2"
+    }
+  }
 }
 
 ```
@@ -75,18 +77,22 @@ module "rdscheck-copy" {
 ```hcl
 
 module "rdscheck-check" {
-  source = git::git@github.com:techdroplabs/rdscheck.git//terraform/check?ref=v0.0.1
+  source = git::git@github.com:techdroplabs/rdscheck.git//terraform?ref=v0.0.1
 
   lambda_rate = "rate(30 minutes)
   release_version = "v0.0.1"
-  command_name = "copy"
-  s3_bucket = "s3-bucket-with-yaml-file"
-  s3_key = "rdscheck.yaml"
-  aws_region_source = "us-west-2"
-  aws_sg_ids = "sg-1234,sg-5678"
-  aws_subnets_ids = "subnet-qwerty1234576,subnet-azerty123456"
-  dd_api_key = "lked78t4iuhweoih8oi"
-  dd_app_key = "lknsdc8754liwhefp90"
+  command = "check"
+  environment {
+    variables = {
+      S3_BUCKET         = "s3-bucket-with-yaml-file"
+      S3_KEY            = "rdscheck.yaml"
+      AWS_REGION_SOURCE = "us-west-2"
+      AWS_SG_IDS        = "sg-1234,sg-5678"
+      AWS_SUBNETS_IDS   = "subnet-qwerty1234576,subnet-azerty123456"
+      DD_API_KEY        = "lked78t4iuhweoih8oi"
+      DD_APP_KEY        = "lknsdc8754liwhefp90"
+    }
+  }
 }
 
 ```

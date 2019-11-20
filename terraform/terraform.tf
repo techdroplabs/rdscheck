@@ -1,5 +1,5 @@
 resource "aws_iam_role" "rdscheck_iam_role" {
-  name = "rdscheck_check_role"
+  name = "rdscheck_${var.command}_role"
 
   assume_role_policy = <<EOF
 {
@@ -20,7 +20,7 @@ EOF
 
 resource "null_resource" "get_release" {
   provisioner "local-exec" {
-    command = "wget -O check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/check.zip"
+    command = "wget -O check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}.zip"
   }
   # We do that so null_resource is called everytime we run terraform apply or plan
   triggers = {
@@ -29,30 +29,21 @@ resource "null_resource" "get_release" {
 }
 
 resource "aws_lambda_function" "rdscheck_lambda" {
-  filename         = "check.zip"
-  function_name    = "check-rdscheck"
+  filename         = "${var.command}.zip"
+  function_name    = "${var.command}-rdscheck"
   role             = "${aws_iam_role.rdscheck_iam_role.arn}"
   handler          = "main"
-  source_code_hash = "${base64sha256(file("check.zip"))}"
+  source_code_hash = "${base64sha256(file("${var.command}.zip"))}"
   runtime          = "go1.x"
   memory_size      = 128
   timeout          = 120
-  environment {
-    variables = {
-      S3_BUCKET         = "${var.s3_bucket}"
-      S3_KEY            = "${var.s3_key}"
-      AWS_REGION_SOURCE = "${var.aws_region_source}"
-      AWS_SG_IDS        = "${var.aws_sg_ids}"
-      AWS_SUBNETS_IDS   = "${var.aws_subnets_ids}"
-      DD_API_KEY        = "${var.dd_api_key}"
-      DD_APP_KEY        = "${var.dd_app_key}"
-    }
-  }
+  environment = ["${slice(list(var.environment), 0, length(var.environment) == 0 ? 0 : 1 )}"]
   depends_on = ["${null_resource.get_command_release}"]
 }
 
 data "aws_iam_policy" "AWSLambdaVPCAccessExecutionRole" {
-  arn = "arn:aws:iam::aws:policy/AWSLambdaVPCAccessExecutionRole"
+  count = "${var.command != "copy" ? 1 : 0}"
+  arn   = "arn:aws:iam::aws:policy/AWSLambdaVPCAccessExecutionRole"
 }
 
 data "aws_iam_policy" "CloudWatchFullAccess" {
@@ -68,6 +59,7 @@ data "aws_iam_policy" "AmazonRDSFullAccess" {
 }
 
 resource "aws_iam_role_policy_attachment" "rdscheck_role_AWSLambdaVPCAccessExecutionRole_policy_attach" {
+  count      = "${var.command != "copy" ? 1 : 0}"
   role       = "${aws_iam_role.rdscheck_iam_role.name}"
   policy_arn = "${data.aws_iam_policy.AWSLambdaVPCAccessExecutionRole.arn}"
 }
@@ -88,7 +80,7 @@ resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonRDSFullAccess_pol
 }
 
 resource "aws_cloudwatch_event_rule" "rdscheck_rule" {
-  name                = "rdscheck_check_rule"
+  name                = "rdscheck_${var.command}_rule"
   schedule_expression = "${var.lambda_rate}"
   is_enabled          = true
 }
@@ -112,16 +104,14 @@ variable "lambda_rate" {
 
 variable "release_version" {}
 
-variable "s3_bucket" {}
+variable "command" {}
 
-variable "s3_key" {}
 
-variable "aws_region_source" {}
+variable "lambda_env_vars" {
+  
+}
 
-variable "aws_sg_ids" {}
-
-variable "aws_subnets_ids" {}
-
-variable "dd_api_key" {}
-
-variable "dd_app_key" {}
+variable "environment" {
+  type        = "map"
+  default     = {}
+}
