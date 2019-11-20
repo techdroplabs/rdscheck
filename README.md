@@ -66,7 +66,7 @@ module "rdscheck-copy" {
   lambda_env_vars {
     variables = {
       S3_BUCKET         = "s3-bucket-with-yaml-file"
-      S3_KEY            = "rdscheck.yaml"
+      S3_KEY            = "rdscheck.yml"
       AWS_REGION_SOURCE = "us-west-2"
     }
   }
@@ -85,7 +85,7 @@ module "rdscheck-check" {
   lambda_env_vars {
     variables = {
       S3_BUCKET         = "s3-bucket-with-yaml-file"
-      S3_KEY            = "rdscheck.yaml"
+      S3_KEY            = "rdscheck.yml"
       AWS_REGION_SOURCE = "us-west-2"
       AWS_SG_IDS        = "sg-1234,sg-5678"
       AWS_SUBNETS_IDS   = "subnet-qwerty1234576,subnet-azerty123456"

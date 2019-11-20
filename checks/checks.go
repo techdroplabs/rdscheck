@@ -11,28 +11,33 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *Client) InitDb(endpoint rds.Endpoint, user, password, dbname string) {
-	port := strconv.FormatInt(*endpoint.Port, 10)
-	host := *endpoint.Address
+// InitDb initialize the database connection
+func (c *Client) InitDb(db *rds.DBInstance, password, dbname string) {
+	port := strconv.FormatInt(*db.Endpoint.Port, 10)
+	host := *db.Endpoint.Address
+	engine := *db.Engine
+	user := *db.MasterUsername
 
 	var err error
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
+	args := fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	c.DB, err = sql.Open("postgres", psqlInfo)
+	c.DB, err = sql.Open(engine, args)
 	if err != nil {
-		log.WithError(err).Error("Couldn't open connection to postgres database")
+		log.WithError(err).Error("Couldn't open connection to database")
 		return
 	}
 
 	err = c.DB.Ping()
 	if err != nil {
-		log.WithError(err).Error("Couldn't ping postgres database")
+		log.WithError(err).Error("Couldn't ping database")
 		return
 	}
 }
 
+// CheckRegexAgainstRow will compare the regex and queries set in the yaml configuration file
+// against each others
 func (c *Client) CheckRegexAgainstRow(query, regex string) bool {
 
 	rows, err := c.DB.Query(query)

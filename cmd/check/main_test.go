@@ -131,8 +131,8 @@ func (m *mockDefaultChecks) DeleteDatabaseSubnetGroup(snapshot *rds.DBSnapshot) 
 	return args.Error(0)
 }
 
-func (m *mockDefaultChecks) InitDb(endpoint rds.Endpoint, user, password, dbname string) {
-	m.Called(endpoint, user, password, dbname)
+func (m *mockDefaultChecks) InitDb(db *rds.DBInstance, password, dbname string) {
+	m.Called(db, password, dbname)
 }
 
 func (m *mockDefaultChecks) SetSessions(region string) {
@@ -152,7 +152,7 @@ func (m *mockDefaultChecks) UnmarshalYamlFile(body io.Reader) (checks.Doc, error
 func TestGetDoc(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	file, _ := os.Open("../example/checks.yaml")
+	file, _ := os.Open("../example/checks.yml")
 	output := ioutil.NopCloser(file)
 
 	doc := checks.Doc{
@@ -238,7 +238,7 @@ func TestValidateVerify(t *testing.T) {
 	c.On("GetTagValue", mock.Anything, mock.Anything).Return("verify")
 	c.On("GetDBInstanceStatus", mock.Anything).Return("available")
 	c.On("GetDBInstanceInfo", mock.Anything).Return(rdsInstance, nil)
-	c.On("InitDb", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	c.On("InitDb", mock.Anything, mock.Anything, mock.Anything)
 	c.On("CheckRegexAgainstRow", mock.Anything, mock.Anything).Return(true)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 

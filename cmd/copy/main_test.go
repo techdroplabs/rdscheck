@@ -87,7 +87,7 @@ func (m *mockDefaultChecks) UnmarshalYamlFile(body io.Reader) (checks.Doc, error
 func TestCopy(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	yaml, _ := ioutil.ReadFile("../../example/checks.yaml")
+	yaml, _ := ioutil.ReadFile("../../example/checks.yml")
 	input := bytes.NewReader(yaml)
 
 	c.On("SetSessions", mock.Anything).Return()

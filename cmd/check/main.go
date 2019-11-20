@@ -164,7 +164,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 						return err
 					}
 
-					destination.InitDb(*dbInfo.Endpoint, *dbInfo.MasterUsername, instance.Password, instance.Database)
+					destination.InitDb(dbInfo, instance.Password, instance.Database)
 
 					if instance.Name == *dbInfo.DBName {
 						for _, query := range instance.Queries {

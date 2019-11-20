@@ -33,7 +33,7 @@ func TestGetYamlFileFromS3(t *testing.T) {
 		S3: s3c,
 	}
 
-	input, _ := os.Open("../example/checks.yaml")
+	input, _ := os.Open("../example/checks.yml")
 	r := ioutil.NopCloser(input)
 	output := &s3.GetObjectOutput{
 		Body: r,
@@ -41,7 +41,7 @@ func TestGetYamlFileFromS3(t *testing.T) {
 
 	s3c.On("GetObject", mock.Anything).Return(output, nil)
 
-	values, err := c.GetYamlFileFromS3("test-bucket", "checks.yaml")
+	values, err := c.GetYamlFileFromS3("test-bucket", "checks.yml")
 	assert.Nil(t, err)
 	buf := new(bytes.Buffer)
 	_, _ = buf.ReadFrom(values)
@@ -51,7 +51,7 @@ func TestGetYamlFileFromS3(t *testing.T) {
 }
 
 func TestUnmarshalYamlFile(t *testing.T) {
-	input, _ := os.Open("../example/checks.yaml")
+	input, _ := os.Open("../example/checks.yml")
 	r := ioutil.NopCloser(input)
 
 	c := &Client{}

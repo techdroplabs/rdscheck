@@ -28,6 +28,7 @@ func GetEnvInt(envVar string, defaults int) int {
 	return i
 }
 
+// GetUnixTimeAsString returns the current unix time as a string
 func GetUnixTimeAsString() string {
 	currentTime := time.Now().Unix()
 	str := strconv.FormatInt(currentTime, 10)
