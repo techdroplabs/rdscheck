@@ -22,6 +22,7 @@ resource "null_resource" "get_release" {
   provisioner "local-exec" {
     command = "wget -O check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}.zip"
   }
+
   # We do that so null_resource is called everytime we run terraform apply or plan
   triggers = {
     always_run = "${timestamp()}"
@@ -37,8 +38,8 @@ resource "aws_lambda_function" "rdscheck_lambda" {
   runtime          = "go1.x"
   memory_size      = 128
   timeout          = 120
-  environment = ["${slice(list(var.environment), 0, length(var.environment) == 0 ? 0 : 1 )}"]
-  depends_on = ["${null_resource.get_command_release}"]
+  environment      = ["${slice(list(var.lambda_env_vars), 0, length(var.lambda_env_vars) == 0 ? 0 : 1 )}"]
+  depends_on       = ["${null_resource.get_command_release}"]
 }
 
 data "aws_iam_policy" "AWSLambdaVPCAccessExecutionRole" {
@@ -106,12 +107,7 @@ variable "release_version" {}
 
 variable "command" {}
 
-
 variable "lambda_env_vars" {
-  
-}
-
-variable "environment" {
-  type        = "map"
-  default     = {}
+  type    = "map"
+  default = {}
 }

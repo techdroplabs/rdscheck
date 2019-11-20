@@ -63,7 +63,7 @@ module "rdscheck-copy" {
   lambda_rate = "rate(1 day)
   release_version = "v0.0.1"
   command = "copy"
-  environment {
+  lambda_env_vars {
     variables = {
       S3_BUCKET         = "s3-bucket-with-yaml-file"
       S3_KEY            = "rdscheck.yaml"
@@ -82,7 +82,7 @@ module "rdscheck-check" {
   lambda_rate = "rate(30 minutes)
   release_version = "v0.0.1"
   command = "check"
-  environment {
+  lambda_env_vars {
     variables = {
       S3_BUCKET         = "s3-bucket-with-yaml-file"
       S3_KEY            = "rdscheck.yaml"
