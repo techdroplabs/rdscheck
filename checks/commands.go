@@ -2,7 +2,6 @@ package checks
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -113,7 +112,7 @@ func (c *Client) GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]
 func (c *Client) DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error {
 	for _, s := range snapshots {
 		if s.DBSnapshotIdentifier == nil {
-			fmt.Sprintln("Nothing to delete")
+			log.Info("No old snapshots to delete")
 			break
 		}
 
@@ -124,6 +123,11 @@ func (c *Client) DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error {
 		_, err := c.RDS.DeleteDBSnapshot(input)
 		if err != nil {
 			return err
+		} else {
+			log.WithFields(log.Fields{
+				"Snapshot": *s.DBSnapshotIdentifier,
+			}).Info("Snapshot deleted")
+			return nil
 		}
 	}
 	return nil
