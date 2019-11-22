@@ -76,6 +76,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 					err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "ok")
 					if err != nil {
 						log.WithError(err).Error("Could not update datadog status")
+						return err
 					}
 
 					err = destination.CreateDatabaseSubnetGroup(snapshot, config.SubnetIds)
@@ -92,6 +93,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 					err = destination.UpdateTag(snapshot, "Status", "restore")
 					if err != nil {
 						log.Error(err)
+						return err
 					}
 
 				case Restore:
@@ -104,6 +106,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 						errors := destination.UpdateTag(snapshot, "Status", "alarm")
 						if errors != nil {
 							log.Error(errors)
+							return err
 						}
 						return err
 					}
@@ -111,6 +114,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 					err = destination.UpdateTag(snapshot, "Status", "modify")
 					if err != nil {
 						log.Error(err)
+						return err
 					}
 
 				case Modify:
@@ -126,6 +130,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 						errors := destination.UpdateTag(snapshot, "Status", "alarm")
 						if errors != nil {
 							log.Error(errors)
+							return err
 						}
 						return err
 					}
@@ -138,6 +143,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 						errors := destination.UpdateTag(snapshot, "Status", "alarm")
 						if errors != nil {
 							log.Error(errors)
+							return err
 						}
 						return err
 					}
@@ -145,6 +151,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 					err = destination.UpdateTag(snapshot, "Status", "verify")
 					if err != nil {
 						log.Error(err)
+						return err
 					}
 
 				case Verify:
@@ -160,6 +167,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 						errors := destination.UpdateTag(snapshot, "Status", "alarm")
 						if errors != nil {
 							log.Error(errors)
+							return err
 						}
 						return err
 					}
@@ -172,6 +180,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 								err := destination.UpdateTag(snapshot, "Status", "clean")
 								if err != nil {
 									log.Error(err)
+									return err
 								}
 							} else {
 								log.WithFields(log.Fields{
@@ -183,6 +192,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 								errors := destination.UpdateTag(snapshot, "Status", "alarm")
 								if errors != nil {
 									log.Error(errors)
+									return err
 								}
 								return err
 							}
@@ -198,11 +208,13 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 					err = destination.UpdateTag(snapshot, "ChecksFailed", "yes")
 					if err != nil {
 						log.Error(err)
+						return err
 					}
 
 					err = destination.UpdateTag(snapshot, "Status", "clean")
 					if err != nil {
 						log.Error(err)
+						return err
 					}
 
 				case Clean:
@@ -217,6 +229,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 					err = destination.UpdateTag(snapshot, "Status", "tested")
 					if err != nil {
 						log.Error(err)
+						return err
 					}
 
 				case Tested:
