@@ -22,7 +22,7 @@ type DefaultChecks interface {
 	SetSessions(region string)
 	GetYamlFileFromS3(bucket, key string) (io.Reader, error)
 	UnmarshalYamlFile(body io.Reader) (Doc, error)
-	dataDogSession(apiKey, applicationKey string) *datadog.Client
+	DataDogSession(apiKey, applicationKey string) *datadog.Client
 	PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status string) error
 	GetSnapshots(DBInstanceIdentifier string) ([]*rds.DBSnapshot, error)
 	CopySnapshots(snapshot *rds.DBSnapshot, destination string) error
@@ -83,7 +83,7 @@ func New() DefaultChecks {
 
 // SetSessions init datadog, RDS and S3 sessions
 func (c *Client) SetSessions(region string) {
-	c.Datadog = c.dataDogSession(config.DDApiKey, config.DDAplicationKey)
+	c.Datadog = c.DataDogSession(config.DDApiKey, config.DDAplicationKey)
 	c.S3 = s3.New(AWSSessions(region))
 	c.RDS = rds.New(AWSSessions(region))
 }
@@ -97,8 +97,8 @@ func AWSSessions(region string) *session.Session {
 	return sess
 }
 
-// dataDogSession creates a new datadog session
-func (c *Client) dataDogSession(apiKey, applicationKey string) *datadog.Client {
+// DataDogSession creates a new datadog session
+func (c *Client) DataDogSession(apiKey, applicationKey string) *datadog.Client {
 	session := datadog.NewClient(apiKey, applicationKey)
 	return session
 }
