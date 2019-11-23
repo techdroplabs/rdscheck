@@ -70,40 +70,41 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 			return err
 		}
 		for _, snapshot := range snapshots {
-			err := process(destination, snapshot, &instance)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"RDS Instance": instance.Name,
-					"Snapshot":     *snapshot.DBSnapshotIdentifier,
-				}).Errorf("Could not get snapshots: %s", err)
-				return err
+			if destination.CheckTag(*snapshot.DBSnapshotArn, "CreatedBy", "rdscheck") {
+				status := destination.GetTagValue(*snapshot.DBSnapshotArn, "Status")
+				err := process(destination, snapshot, &instance, status)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"RDS Instance": instance.Name,
+						"Snapshot":     *snapshot.DBSnapshotIdentifier,
+					}).Errorf("Could not get snapshots: %s", err)
+					return err
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func process(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, instance *checks.Instances) error {
-	if destination.CheckTag(*snapshot.DBSnapshotArn, "CreatedBy", "rdscheck") {
-		status := destination.GetTagValue(*snapshot.DBSnapshotArn, "Status")
-		switch status {
-		case Ready:
-			return caseReady(destination, snapshot)
-		case Restore:
-			return caseRestore(destination, snapshot, instance)
-		case Modify:
-			return caseModify(destination, snapshot, instance)
-		case Verify:
-			return caseVerify(destination, snapshot, instance)
-		case Alarm:
-			return caseAlarm(destination, snapshot)
-		case Clean:
-			return caseClean(destination, snapshot)
-		case Tested:
-			return caseTested(destination, snapshot)
-		}
+func process(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, instance *checks.Instances, status string) error {
+	switch status {
+	case Ready:
+		return caseReady(destination, snapshot)
+	case Restore:
+		return caseRestore(destination, snapshot, instance)
+	case Modify:
+		return caseModify(destination, snapshot, instance)
+	case Verify:
+		return caseVerify(destination, snapshot, instance)
+	case Alarm:
+		return caseAlarm(destination, snapshot)
+	case Clean:
+		return caseClean(destination, snapshot)
+	case Tested:
+		return caseTested(destination, snapshot)
+	default:
+		return nil
 	}
-	return nil
 }
 
 func caseReady(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) error {
