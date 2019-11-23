@@ -39,7 +39,7 @@ type DefaultChecks interface {
 	ChangeDBpassword(snapshot *rds.DBSnapshot, DBArn, password string) error
 	GetDBInstanceStatus(snapshot *rds.DBSnapshot) string
 	GetTagValue(arn, key string) string
-	InitDb(db *rds.DBInstance, password, dbname string)
+	InitDb(db *rds.DBInstance, password, dbname string) error
 	CheckRegexAgainstRow(query, regex string) bool
 }
 

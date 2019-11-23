@@ -20,7 +20,7 @@ var engineConnection = map[string]string{
 }
 
 // InitDb initialize the database connection
-func (c *Client) InitDb(db *rds.DBInstance, password, dbname string) {
+func (c *Client) InitDb(db *rds.DBInstance, password, dbname string) error {
 	port := strconv.FormatInt(*db.Endpoint.Port, 10)
 	host := *db.Endpoint.Address
 	rdsEngine := *db.Engine
@@ -44,14 +44,15 @@ func (c *Client) InitDb(db *rds.DBInstance, password, dbname string) {
 	c.DB, err = sql.Open(engine, args)
 	if err != nil {
 		log.WithError(err).Error("Couldn't open connection to database")
-		return
+		return err
 	}
 
 	err = c.DB.Ping()
 	if err != nil {
 		log.WithError(err).Error("Couldn't ping database")
-		return
+		return err
 	}
+	return nil
 }
 
 // CheckRegexAgainstRow will compare the regex and queries set in the yaml configuration file
@@ -65,16 +66,21 @@ func (c *Client) CheckRegexAgainstRow(query, regex string) bool {
 	}
 	defer rows.Close()
 
-	cols, _ := rows.Columns()
+	cols, err := rows.Columns()
+	if err != nil {
+		return false
+	}
 
 	data := make(map[string]string)
 
 	for rows.Next() {
 		columns := make([]string, len(cols))
 		columnPointers := make([]interface{}, len(cols))
+
 		for i := range columns {
 			columnPointers[i] = &columns[i]
 		}
+
 		err := rows.Scan(columnPointers...)
 
 		for i, colName := range cols {

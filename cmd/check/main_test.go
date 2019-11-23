@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -19,34 +18,22 @@ type mockDefaultChecks struct {
 	mock.Mock
 }
 
-var doc = checks.Doc{
-	Instances: []checks.Instances{
-		checks.Instances{
-			Name:     "test",
-			Database: "test",
-			Password: "password",
-			Queries: []checks.Queries{
-				checks.Queries{
-					Query: "SELECT tablename FROM pg_catalog.pg_tables;",
-					Regex: "^pg_statistic$",
-				},
-			},
-		},
-	},
+var singleSnapshot = &rds.DBSnapshot{
+	DBSnapshotIdentifier: aws.String("test"),
 }
 
-var snapshots = []*rds.DBSnapshot{
-	&rds.DBSnapshot{
-		Status:               aws.String("available"),
-		DBSnapshotIdentifier: aws.String("test"),
-		SnapshotCreateTime:   aws.Time(time.Now().AddDate(0, 0, -10)),
-		DBSnapshotArn:        aws.String("arn:aws:rds:us-west-2:123456789012:snapshot:test"),
-	},
-	&rds.DBSnapshot{
-		Status:               aws.String("available"),
-		DBSnapshotIdentifier: aws.String("test-2"),
-		SnapshotCreateTime:   aws.Time(time.Now()),
-		DBSnapshotArn:        aws.String("arn:aws:rds:us-west-2:123456789012:snapshot:test-2"),
+var singleInstance = &checks.Instances{
+	Name:        "test",
+	Database:    "test",
+	Type:        "db.t2.micro",
+	Password:    "thisisatest",
+	Retention:   1,
+	Destination: "us-west-2",
+	Queries: []checks.Queries{
+		checks.Queries{
+			Query: "SELECT tablename FROM pg_catalog.pg_tables;",
+			Regex: "^pg_statistic$",
+		},
 	},
 }
 
@@ -131,8 +118,9 @@ func (m *mockDefaultChecks) DeleteDatabaseSubnetGroup(snapshot *rds.DBSnapshot) 
 	return args.Error(0)
 }
 
-func (m *mockDefaultChecks) InitDb(db *rds.DBInstance, password, dbname string) {
-	m.Called(db, password, dbname)
+func (m *mockDefaultChecks) InitDb(db *rds.DBInstance, password, dbname string) error {
+	args := m.Called(db, password, dbname)
+	return args.Error(0)
 }
 
 func (m *mockDefaultChecks) SetSessions(region string) {
@@ -178,120 +166,92 @@ func TestGetDoc(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidateReady(t *testing.T) {
+func TestCaseReady(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("SetSessions", mock.Anything).Return()
-	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
-	c.On("GetTagValue", mock.Anything, mock.Anything).Return("ready")
 	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("CreateDatabaseSubnetGroup", mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := validate(c, doc)
+	err := caseReady(c, singleSnapshot)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)
 }
 
-func TestValidateRestore(t *testing.T) {
+func TestCaseRestore(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("SetSessions", mock.Anything).Return()
-	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
-	c.On("GetTagValue", mock.Anything, mock.Anything).Return("restore")
 	c.On("CreateDBFromSnapshot", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := validate(c, doc)
+	err := caseRestore(c, singleSnapshot, singleInstance)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)
 }
 
-func TestValidateModify(t *testing.T) {
+func TestCaseModify(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("SetSessions", mock.Anything).Return()
-	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
-	c.On("GetTagValue", mock.Anything, mock.Anything).Return("modify")
 	c.On("GetDBInstanceStatus", mock.Anything).Return("available")
 	c.On("GetDBInstanceInfo", mock.Anything).Return(rdsInstance, nil)
 	c.On("ChangeDBpassword", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := validate(c, doc)
+	err := caseModify(c, singleSnapshot, singleInstance)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)
 }
 
-func TestValidateVerify(t *testing.T) {
+func TestCaseVerify(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("SetSessions", mock.Anything).Return()
-	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
-	c.On("GetTagValue", mock.Anything, mock.Anything).Return("verify")
 	c.On("GetDBInstanceStatus", mock.Anything).Return("available")
 	c.On("GetDBInstanceInfo", mock.Anything).Return(rdsInstance, nil)
-	c.On("InitDb", mock.Anything, mock.Anything, mock.Anything)
+	c.On("InitDb", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("CheckRegexAgainstRow", mock.Anything, mock.Anything).Return(true)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := validate(c, doc)
+	err := caseVerify(c, singleSnapshot, singleInstance)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)
 }
 
-func TestValidateAlarm(t *testing.T) {
+func TestCaseAlarm(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("SetSessions", mock.Anything).Return()
-	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
-	c.On("GetTagValue", mock.Anything, mock.Anything).Return("alarm")
 	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := validate(c, doc)
+	err := caseAlarm(c, singleSnapshot)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)
 }
 
-func TestValidateClean(t *testing.T) {
+func TestCaseClean(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("SetSessions", mock.Anything).Return()
-	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
-	c.On("GetTagValue", mock.Anything, mock.Anything).Return("clean")
 	c.On("DeleteDB", mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := validate(c, doc)
+	err := caseClean(c, singleSnapshot)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)
 }
 
-func TestValidateTested(t *testing.T) {
+func TestCaseTested(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("SetSessions", mock.Anything).Return()
-	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
-	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
-	c.On("GetTagValue", mock.Anything, mock.Anything).Return("tested")
 	c.On("GetDBInstanceStatus", mock.Anything).Return("")
 	c.On("CheckIfDatabaseSubnetGroupExist", mock.Anything).Return(true)
 	c.On("DeleteDatabaseSubnetGroup", mock.Anything).Return(nil)
 
-	err := validate(c, doc)
+	err := caseTested(c, singleSnapshot)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)

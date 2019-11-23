@@ -91,9 +91,10 @@ func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot, destination string) err
 }
 
 // GetOldSnapshots gets old snapshots based on the retention policy
-func (c *Client) GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]*rds.DBSnapshot, error) {
+// retentionDays is a integer of the number of days we want to keep the snapshots.
+func (c *Client) GetOldSnapshots(snapshots []*rds.DBSnapshot, retentionDays int) ([]*rds.DBSnapshot, error) {
 	var oldSnapshots []*rds.DBSnapshot
-	oldDate := time.Now().AddDate(0, 0, -retention)
+	oldDate := time.Now().AddDate(0, 0, -retentionDays)
 	for _, s := range snapshots {
 		if *s.Status != "available" {
 			continue
