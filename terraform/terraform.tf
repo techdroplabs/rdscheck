@@ -20,7 +20,7 @@ EOF
 
 resource "null_resource" "get_release" {
   provisioner "local-exec" {
-    command = "wget -O ${path.module}/check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}.zip"
+    command = "wget -O ${path.root}/check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}.zip"
   }
 
   # We do that so null_resource is called everytime we run terraform apply or plan
@@ -30,11 +30,11 @@ resource "null_resource" "get_release" {
 }
 
 resource "aws_lambda_function" "rdscheck_lambda" {
-  filename         = "${path.module}/${var.command}.zip"
+  filename         = "${path.root}/${var.command}.zip"
   function_name    = "${var.command}-rdscheck"
   role             = "${aws_iam_role.rdscheck_iam_role.arn}"
   handler          = "main"
-  source_code_hash = "${base64sha256(file("${path.module}/${var.command}.zip"))}"
+  source_code_hash = "${base64sha256(file("${path.root}/${var.command}.zip"))}"
   runtime          = "go1.x"
   memory_size      = 128
   timeout          = 120
