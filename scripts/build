@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+
+CMD="$1"
+
+docker run --rm -i \
+-v "$PWD":/go/src/github.com/techdroplabs/rdscheck/ \
+-w /go/src/github.com/techdroplabs/rdscheck \
+-e CGO_ENABLED=0 \
+-e GOOS=linux \
+-e GOARCH=amd64 \
+golang:1.13.4-buster \
+go build -mod=vendor -installsuffix static \
+-o ./build/$CMD/main \
+github.com/techdroplabs/rdscheck/cmd/$CMD

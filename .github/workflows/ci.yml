@@ -1,0 +1,23 @@
+name: ci
+on: [push]
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Lint Tests
+      run: make lint
+
+    - name: Unit Tests
+      run: make unit
+
+    - name: Build
+      run: |
+        make build CMD=check
+        make build CMD=copy
+
+

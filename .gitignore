@@ -1,0 +1,6 @@
+.vscode
+.env
+.DS_Store
+build
+copy.zip
+check.zip

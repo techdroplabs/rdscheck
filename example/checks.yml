@@ -1,0 +1,19 @@
+instances:
+  - name: rdscheck
+    database: rdscheck
+    type: db.t2.micro
+    password: thisisatest
+    retention: 1
+    destination: us-east-1
+    queries:
+      - query: "SELECT tablename FROM pg_catalog.pg_tables;"
+        regex: "^pg_statistic$"
+  - name: rdscheck2
+    database: rdscheck2
+    type: db.t2.micro
+    password: thisisatest
+    retention: 10
+    destination: us-east-2
+    queries:
+      - query: "SELECT tablename FROM pg_catalog.pg_tables;"
+        regex: "^pg_statistic$"
