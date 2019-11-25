@@ -24,11 +24,6 @@ jobs:
           make build CMD=check
           make build CMD=copy
 
-      - name: zip builds
-        run: |
-          zip --junk-paths check.zip ./build/check/main
-          zip --junk-paths copy.zip ./build/copy/main
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1.0.0
@@ -47,9 +42,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: ./check.zip
-          asset_name: check.zip
-          asset_content_type: application/zip
+          asset_path: ./build/check/main
+          asset_name: check
+          asset_content_type: application/octet-stream
 
       - name: Upload Copy Asset
         id: upload-copy-asset 
@@ -58,6 +53,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: ./copy.zip
-          asset_name: copy.zip
-          asset_content_type: application/zip
+          asset_path: ./build/copy/main
+          asset_name: copy
+          asset_content_type: application/octet-stream

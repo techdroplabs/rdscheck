@@ -20,7 +20,7 @@ EOF
 
 resource "null_resource" "get_release" {
   provisioner "local-exec" {
-    command = "wget -O ${path.root}/check.zip https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}.zip"
+    command = "wget -O ${path.module}/lambda-files/${var.command} https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}"
   }
 
   # We do that so null_resource is called everytime we run terraform apply or plan
@@ -29,12 +29,25 @@ resource "null_resource" "get_release" {
   }
 }
 
+data "null_data_source" "wait_for_get_release" {
+  inputs = {
+    get_release_id = "${null_resource.get_release.id}"
+    source_dir = "${path.module}/lambda-files/"
+  }
+}
+
+data "archive_file" "lambda_code" {
+  type = "zip"
+  source_dir = "${data.null_data_source.wait_for_get_release.outputs["source_dir"]}"
+  output_path = "${path.module}/${var.command}.zip"
+}
+
 resource "aws_lambda_function" "rdscheck_lambda" {
-  filename         = "${path.root}/${var.command}.zip"
+  filename         = "${data.archive_file.lambda_code.output_path}"
   function_name    = "${var.command}-rdscheck"
   role             = "${aws_iam_role.rdscheck_iam_role.arn}"
   handler          = "main"
-  source_code_hash = "${base64sha256(file("${path.root}/${var.command}.zip"))}"
+  source_code_hash = "${data.archive_file.lambda_code.output_base64sha256}"
   runtime          = "go1.x"
   memory_size      = 128
   timeout          = 120
