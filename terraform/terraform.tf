@@ -20,7 +20,7 @@ EOF
 
 resource "null_resource" "get_release" {
   provisioner "local-exec" {
-    command = "rm -rf ${path.module}/lambda-files && mkdir ${path.module}/lambda-files && wget -O ${path.module}/lambda-files/main https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}"
+    command = "rm -rf ${path.module}/lambda-files && mkdir ${path.module}/lambda-files && wget -O ${path.module}/lambda-files/main https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command} && chmod +x ${path.module}/lambda-files/main"
   }
 
   # We do that so null_resource is called everytime we run terraform apply or plan
@@ -51,7 +51,7 @@ resource "aws_lambda_function" "rdscheck_lambda" {
 
 data "aws_iam_policy" "AWSLambdaVPCAccessExecutionRole" {
   count = "${var.command != "copy" ? 1 : 0}"
-  arn   = "arn:aws:iam::aws:policy/AWSLambdaVPCAccessExecutionRole"
+  arn   = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
 data "aws_iam_policy" "CloudWatchFullAccess" {
