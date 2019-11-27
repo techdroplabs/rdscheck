@@ -5,6 +5,7 @@ instances:
     password: thisisatest
     retention: 1
     destination: us-east-1
+    kmsid: "arn:aws:kms:us-east-1:1234567890:key/123456-7890-123456"
     queries:
       - query: "SELECT tablename FROM pg_catalog.pg_tables;"
         regex: "^pg_statistic$"

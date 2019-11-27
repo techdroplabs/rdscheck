@@ -50,12 +50,25 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 			return err
 		}
 		for _, snapshot := range snapshots {
-			err := destination.CopySnapshots(snapshot, instance.Destination)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"Snapshot": *snapshot.DBSnapshotIdentifier,
-				}).Errorf("Could not copy snapshot: %s", err)
-				return err
+			if *snapshot.SnapshotType == "automated" {
+				var preSignedUrl string
+				cleanArn := destination.CleanArn(snapshot)
+				if *snapshot.Encrypted {
+					preSignedUrl, err = source.PreSignUrl(instance.Destination, *snapshot.DBSnapshotArn, instance.KmsID, cleanArn)
+					if err != nil {
+						log.WithFields(log.Fields{
+							"snapshot": *snapshot.DBSnapshotIdentifier,
+						}).Errorf("Could not presigned the url: %s", err)
+						return err
+					}
+				}
+				err := destination.CopySnapshots(snapshot, instance.Destination, instance.KmsID, preSignedUrl, cleanArn)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"Snapshot": *snapshot.DBSnapshotIdentifier,
+					}).Errorf("Could not copy snapshot: %s", err)
+					return err
+				}
 			}
 		}
 
@@ -67,17 +80,20 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 			}).Errorf("Could not get snapshots: %s", err)
 			return err
 		}
+		for _, snapshot := range snapshots {
+			if destination.CheckTag(*snapshot.DBSnapshotArn, "CreatedBy", "rdscheck") {
+				oldSnapshots, err := destination.GetOldSnapshots(snapshots, instance.Retention)
+				if err != nil {
+					log.WithError(err).Error("Could not get old snapshots")
+					return err
+				}
 
-		oldSnapshots, err := destination.GetOldSnapshots(snapshots, instance.Retention)
-		if err != nil {
-			log.WithError(err).Error("Could not get old snapshots")
-			return err
-		}
-
-		err = destination.DeleteOldSnapshots(oldSnapshots)
-		if err != nil {
-			log.WithError(err).Error("Could not delete old snapshots")
-			return err
+				err = destination.DeleteOldSnapshots(oldSnapshots)
+				if err != nil {
+					log.WithError(err).Error("Could not delete old snapshots")
+					return err
+				}
+			}
 		}
 	}
 	return nil

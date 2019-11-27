@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -25,7 +26,7 @@ type DefaultChecks interface {
 	DataDogSession(apiKey, applicationKey string) *datadog.Client
 	PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status string) error
 	GetSnapshots(DBInstanceIdentifier string) ([]*rds.DBSnapshot, error)
-	CopySnapshots(snapshot *rds.DBSnapshot, destination string) error
+	CopySnapshots(snapshot *rds.DBSnapshot, destination, kmsid, preSignedUrl, cleanArn string) error
 	GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]*rds.DBSnapshot, error)
 	DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error
 	CheckIfDatabaseSubnetGroupExist(snapshot *rds.DBSnapshot) bool
@@ -41,6 +42,8 @@ type DefaultChecks interface {
 	GetTagValue(arn, key string) string
 	InitDb(db *rds.DBInstance, password, dbname string) error
 	CheckRegexAgainstRow(query, regex string) bool
+	PreSignUrl(destinationRegion, snapshotArn, kmsid, cleanArn string) (string, error)
+	CleanArn(snapshot *rds.DBSnapshot) string
 }
 
 type Client struct {
@@ -62,6 +65,7 @@ type Instances struct {
 	Password    string
 	Retention   int
 	Destination string
+	KmsID       string
 	Queries     []Queries
 }
 
@@ -156,4 +160,10 @@ func (c *Client) PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status 
 		return err
 	}
 	return nil
+}
+
+func (c *Client) CleanArn(snapshot *rds.DBSnapshot) string {
+	arn := strings.SplitN(*snapshot.DBSnapshotArn, ":", 8)
+	cleanArn := arn[len(arn)-1]
+	return cleanArn
 }
