@@ -89,11 +89,6 @@ func (m *mockRDS) CopyDBSnapshotRequest(input *rds.CopyDBSnapshotInput) (*reques
 	return args.Get(0).(*request.Request), args.Get(1).(*rds.CopyDBSnapshotOutput)
 }
 
-func (m *mockRDS) Presign(expire time.Duration) (string, error) {
-	args := m.Called(expire)
-	return args.Get(0).(string), args.Error(1)
-}
-
 func TestGetSnapshots(t *testing.T) {
 	rdsc := &mockRDS{}
 
