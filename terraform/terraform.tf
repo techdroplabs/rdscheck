@@ -30,11 +30,10 @@ resource "null_resource" "get_release" {
 }
 
 data "archive_file" "lambda_code" {
-  type = "zip"
+  type        = "zip"
   source_file = "${path.module}/lambda-files/main"
   output_path = "${path.module}/lambda-files/main.zip"
-  
-  depends_on = ["null_resource.get_release"]
+  depends_on  = ["null_resource.get_release"]
 }
 
 resource "aws_lambda_function" "rdscheck_lambda" {
