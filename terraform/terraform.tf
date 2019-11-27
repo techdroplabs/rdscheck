@@ -20,7 +20,7 @@ EOF
 
 resource "null_resource" "get_release" {
   provisioner "local-exec" {
-    command = "wget -O ${path.module}/lambda-files/${var.command} https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}"
+    command = "rm -rf ${path.module}/lambda-files && mkdir ${path.module}/lambda-files && wget -O ${path.module}/lambda-files/main https://github.com/techdroplabs/rdscheck/releases/download/${var.release_version}/${var.command}"
   }
 
   # We do that so null_resource is called everytime we run terraform apply or plan
@@ -29,17 +29,12 @@ resource "null_resource" "get_release" {
   }
 }
 
-data "null_data_source" "wait_for_get_release" {
-  inputs = {
-    get_release_id = "${null_resource.get_release.id}"
-    source_dir = "${path.module}/lambda-files/"
-  }
-}
-
 data "archive_file" "lambda_code" {
   type = "zip"
-  source_dir = "${data.null_data_source.wait_for_get_release.outputs["source_dir"]}"
-  output_path = "${path.module}/${var.command}.zip"
+  source_file = "${path.module}/lambda-files/main"
+  output_path = "${path.module}/lambda-files/main.zip"
+  
+  depends_on = ["null_resource.get_release"]
 }
 
 resource "aws_lambda_function" "rdscheck_lambda" {
@@ -52,7 +47,6 @@ resource "aws_lambda_function" "rdscheck_lambda" {
   memory_size      = 128
   timeout          = 120
   environment      = ["${slice(list(var.lambda_env_vars), 0, length(var.lambda_env_vars) == 0 ? 0 : 1)}"]
-  depends_on       = ["null_resource.get_release"]
 }
 
 data "aws_iam_policy" "AWSLambdaVPCAccessExecutionRole" {
