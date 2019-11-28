@@ -65,6 +65,7 @@ func TestUnmarshalYamlFile(t *testing.T) {
 				Password:    "thisisatest",
 				Retention:   1,
 				Destination: "us-east-1",
+				KmsID:       "arn:aws:kms:us-east-1:1234567890:key/123456-7890-123456",
 				Queries: []Queries{
 					Queries{
 						Query: "SELECT tablename FROM pg_catalog.pg_tables;",
@@ -116,6 +117,17 @@ func TestPostDatadogChecks(t *testing.T) {
 		DBSnapshotIdentifier: aws.String("test"),
 	}
 
-	err := c.PostDatadogChecks(input, "rdscheck.status", "ok")
+	err := c.PostDatadogChecks(input, "rdscheck.status", "ok", "check")
 	assert.Nil(t, err)
+}
+
+func TestCleanArn(t *testing.T) {
+	c := &Client{}
+
+	input := &rds.DBSnapshot{
+		DBSnapshotArn: aws.String("arn:aws:rds:us-west-2:123456789012:snapshot:test"),
+	}
+
+	value := c.CleanArn(input)
+	assert.Equal(t, value, "test")
 }

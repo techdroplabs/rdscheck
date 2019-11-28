@@ -1,10 +1,13 @@
 package checks
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/stretchr/testify/assert"
@@ -81,6 +84,11 @@ func (m *mockRDS) ModifyDBInstance(input *rds.ModifyDBInstanceInput) (*rds.Modif
 	return args.Get(0).(*rds.ModifyDBInstanceOutput), args.Error(1)
 }
 
+func (m *mockRDS) CopyDBSnapshotRequest(input *rds.CopyDBSnapshotInput) (*request.Request, *rds.CopyDBSnapshotOutput) {
+	args := m.Called(input)
+	return args.Get(0).(*request.Request), args.Get(1).(*rds.CopyDBSnapshotOutput)
+}
+
 func TestGetSnapshots(t *testing.T) {
 	rdsc := &mockRDS{}
 
@@ -109,7 +117,7 @@ func TestGetSnapshots(t *testing.T) {
 	rdsc.AssertExpectations(t)
 }
 
-func TestCopySnapshots(t *testing.T) {
+func TestCopySnapshotsNoKms(t *testing.T) {
 	rdsc := &mockRDS{}
 
 	c := &Client{
@@ -119,13 +127,38 @@ func TestCopySnapshots(t *testing.T) {
 	input := &rds.DBSnapshot{
 		DBSnapshotIdentifier: aws.String("test"),
 		DBSnapshotArn:        aws.String("arn:aws:rds:us-west-2:123456789012:snapshot:test"),
+		Encrypted:            aws.Bool(false),
 	}
 
 	rdsc.On("CopyDBSnapshot", mock.Anything).Return(&rds.CopyDBSnapshotOutput{
 		DBSnapshot: &rds.DBSnapshot{},
 	}, nil)
 
-	err := c.CopySnapshots(input, "us-west-2")
+	err := c.CopySnapshots(input, "us-west-2", "", "", "test")
+	assert.Nil(t, err)
+	rdsc.AssertExpectations(t)
+
+}
+
+func TestCopySnapshotsWithKms(t *testing.T) {
+	rdsc := &mockRDS{}
+
+	c := &Client{
+		RDS: rdsc,
+	}
+
+	input := &rds.DBSnapshot{
+		DBSnapshotIdentifier: aws.String("test"),
+		DBSnapshotArn:        aws.String("arn:aws:rds:us-west-2:123456789012:snapshot:test"),
+		KmsKeyId:             aws.String("arn:aws:kms:us-east-1:1234567890:key/123456-7890-123456"),
+		Encrypted:            aws.Bool(true),
+	}
+
+	rdsc.On("CopyDBSnapshot", mock.Anything).Return(&rds.CopyDBSnapshotOutput{
+		DBSnapshot: &rds.DBSnapshot{},
+	}, nil)
+
+	err := c.CopySnapshots(input, "us-west-2", "arn:aws:kms:us-east-1:1234567890:key/123456-7890-123456", "https://url.local", "test")
 	assert.Nil(t, err)
 	rdsc.AssertExpectations(t)
 
@@ -430,5 +463,34 @@ func TestGetTagValue(t *testing.T) {
 
 	value := c.GetTagValue("arn:aws:rds:us-west-2:123456789012:snapshot:test", "Status")
 	assert.Equal(t, value, "restore")
+	rdsc.AssertExpectations(t)
+}
+
+func TestPreSignUrl(t *testing.T) {
+	rdsc := &mockRDS{}
+
+	c := &Client{
+		RDS: rdsc,
+	}
+
+	u := &url.URL{
+		Scheme: "http",
+		Host:   "fakeurl.aws.com",
+	}
+
+	req := &request.Request{
+		HTTPRequest: &http.Request{
+			URL: u,
+		},
+		Operation: &request.Operation{},
+	}
+
+	output := &rds.CopyDBSnapshotOutput{}
+
+	rdsc.On("CopyDBSnapshotRequest", mock.Anything).Return(req, output)
+
+	value, err := c.PreSignUrl("us-east-2", "arn:aws:rds:us-west-2:123456789012:snapshot:test", "arn:aws:kms:us-east-1:1234567890:key/123456-7890-123456", "test")
+	assert.Nil(t, err)
+	assert.Equal(t, value, "http://fakeurl.aws.com")
 	rdsc.AssertExpectations(t)
 }

@@ -108,7 +108,7 @@ func process(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, instanc
 }
 
 func caseReady(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) error {
-	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "ok")
+	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "ok", "check")
 	if err != nil {
 		log.WithError(err).Error("Could not update datadog status")
 		return err
@@ -215,33 +215,31 @@ func caseVerify(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, inst
 		return err
 	}
 
-	if instance.Name == *dbInfo.DBName {
-		for _, query := range instance.Queries {
-			if destination.CheckRegexAgainstRow(query.Query, query.Regex) {
-				err := destination.UpdateTag(snapshot, "Status", "clean")
-				if err != nil {
-					return err
-				}
-			} else {
-				log.WithFields(log.Fields{
-					"RDS Instance": string(*snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier),
-					"DB Name":      *dbInfo.DBName,
-					"Query":        query.Query,
-					"Regex":        query.Regex,
-				}).Errorf("Query matched failed: %s", err)
-				errors := destination.UpdateTag(snapshot, "Status", "alarm")
-				if errors != nil {
-					return err
-				}
+	for _, query := range instance.Queries {
+		if destination.CheckRegexAgainstRow(query.Query, query.Regex) {
+			err := destination.UpdateTag(snapshot, "Status", "clean")
+			if err != nil {
 				return err
 			}
+		} else {
+			log.WithFields(log.Fields{
+				"RDS Instance": string(*snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier),
+				"DB Name":      *dbInfo.DBName,
+				"Query":        query.Query,
+				"Regex":        query.Regex,
+			}).Errorf("Query matched failed: %s", err)
+			errors := destination.UpdateTag(snapshot, "Status", "alarm")
+			if errors != nil {
+				return err
+			}
+			return err
 		}
 	}
 	return nil
 }
 
 func caseAlarm(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) error {
-	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical")
+	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical", "check")
 	if err != nil {
 		log.WithError(err).Error("Could not update datadog status")
 		return err

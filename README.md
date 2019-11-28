@@ -1,6 +1,6 @@
 # rdscheck
 + Copy command will:
-    - Copy snapshot(s) to a different AWS region in the same account
+    - Copy snapshot(s) to a different AWS region in the same account. This will copy only automated snapshots.
     - Cleanup old snapshots based on retention setup in the yaml config file
 + Check command will:
     - Creates new rds instance(s) with the snapshots
@@ -20,6 +20,7 @@
     - password: `the password that we will use to connect to the database. It doesn't need to be the original one. We will use this one to reset the original password`
     - retention: `how many days we want to keep the copied snapshot around`
     - destination: `the aws region where we will copy/restore the snapshot`
+    - kmsid: `the id (ARN) of the kms key that you want to use on the destination region. This is needed if your original snapshot is encrypted`
     - queries: `all the sql queries we want to run on the restored snapshot to validate it and the expected results as regex`
       - query: `the sql query to run`
       - regex: `the regex of the expected result`
@@ -33,6 +34,7 @@ instances:
     password: thisisatest
     retention: 1
     destination: us-east-1
+    kmsid: "arn:aws:kms:us-east-1:1234567890:key/123456-7890-123456"
     queries:
       - query: "SELECT tablename FROM pg_catalog.pg_tables;"
         regex: "^pg_statistic$"

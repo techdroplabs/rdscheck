@@ -3,7 +3,6 @@ package checks
 import (
 	"errors"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -42,10 +41,7 @@ func (c *Client) GetSnapshots(DBInstanceIdentifier string) ([]*rds.DBSnapshot, e
 
 // CopySnapshots copies the snapshots either to the same region as the original
 // or to a new region
-func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot, destination string) error {
-
-	arn := strings.SplitN(*snapshot.DBSnapshotArn, ":", 8)
-	cleanArn := arn[len(arn)-1]
+func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot, destination, kmsid, preSignedUrl, cleanArn string) error {
 
 	input := &rds.CopyDBSnapshotInput{
 		SourceRegion:               aws.String(config.AWSRegionSource),
@@ -71,6 +67,12 @@ func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot, destination string) err
 			},
 		},
 	}
+
+	if *snapshot.Encrypted {
+		input.PreSignedUrl = aws.String(preSignedUrl)
+		input.KmsKeyId = aws.String(kmsid)
+	}
+
 	_, err := c.RDS.CopyDBSnapshot(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -86,8 +88,31 @@ func (c *Client) CopySnapshots(snapshot *rds.DBSnapshot, destination string) err
 		} else {
 			return err
 		}
+	} else {
+		log.WithFields(log.Fields{
+			"Snapshot":    *snapshot.DBSnapshotIdentifier,
+			"From":        config.AWSRegionSource,
+			"Destination": destination,
+		}).Info("Snapshot copied")
 	}
 	return nil
+}
+
+// PreSignUrl presigned an aws url so that we can copy an encrypted snapshot from a region to another
+func (c *Client) PreSignUrl(destinationRegion, snapshotArn, kmsid, cleanArn string) (string, error) {
+	input := &rds.CopyDBSnapshotInput{
+		SourceRegion:               aws.String(config.AWSRegionSource),
+		DestinationRegion:          aws.String(destinationRegion),
+		SourceDBSnapshotIdentifier: aws.String(snapshotArn),
+		KmsKeyId:                   aws.String(kmsid),
+		TargetDBSnapshotIdentifier: aws.String(cleanArn),
+	}
+	req, _ := c.RDS.CopyDBSnapshotRequest(input)
+	url, err := req.Presign(time.Duration(5) * time.Minute)
+	if err != nil {
+		return "", err
+	}
+	return url, nil
 }
 
 // GetOldSnapshots gets old snapshots based on the retention policy
