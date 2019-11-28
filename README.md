@@ -82,6 +82,8 @@ module "rdscheck-check" {
   lambda_rate = "rate(30 minutes)"
   release_version = "v0.0.1"
   command = "check"
+  subnet_ids = ["subnet-12345,subnet-6789"]
+  security_group_ids = ["sg-1234,sg-5678"]
   lambda_env_vars {
     variables = {
       S3_BUCKET         = "s3-bucket-with-yaml-file"
