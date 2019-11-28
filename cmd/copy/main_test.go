@@ -103,6 +103,11 @@ func (m *mockDefaultChecks) CleanArn(snapshot *rds.DBSnapshot) string {
 	return args.Get(0).(string)
 }
 
+func (m *mockDefaultChecks) PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status, cmdName string) error {
+	args := m.Called(snapshot, metricName, status, cmdName)
+	return args.Error(0)
+}
+
 func TestCopy(t *testing.T) {
 	c := &mockDefaultChecks{}
 
@@ -113,6 +118,7 @@ func TestCopy(t *testing.T) {
 	c.On("GetYamlFileFromS3", mock.Anything, mock.Anything).Return(input, nil)
 	c.On("UnmarshalYamlFile", mock.Anything).Return(doc, nil)
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
+	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("CleanArn", mock.Anything).Return("test")
 	c.On("PreSignUrl", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("https://url.local", nil)
 	c.On("CopySnapshots", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

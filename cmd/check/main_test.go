@@ -63,8 +63,8 @@ func (m *mockDefaultChecks) GetTagValue(arn, key string) string {
 	return args.Get(0).(string)
 }
 
-func (m *mockDefaultChecks) PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status string) error {
-	args := m.Called(snapshot, metricName, status)
+func (m *mockDefaultChecks) PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status, cmdName string) error {
+	args := m.Called(snapshot, metricName, status, cmdName)
 	return args.Error(0)
 }
 
@@ -169,7 +169,7 @@ func TestGetDoc(t *testing.T) {
 func TestCaseReady(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("CreateDatabaseSubnetGroup", mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
@@ -223,7 +223,7 @@ func TestCaseVerify(t *testing.T) {
 func TestCaseAlarm(t *testing.T) {
 	c := &mockDefaultChecks{}
 
-	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("UpdateTag", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	err := caseAlarm(c, singleSnapshot)

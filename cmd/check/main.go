@@ -108,7 +108,7 @@ func process(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, instanc
 }
 
 func caseReady(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) error {
-	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "ok")
+	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "ok", "check")
 	if err != nil {
 		log.WithError(err).Error("Could not update datadog status")
 		return err
@@ -239,7 +239,7 @@ func caseVerify(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, inst
 }
 
 func caseAlarm(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) error {
-	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical")
+	err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical", "check")
 	if err != nil {
 		log.WithError(err).Error("Could not update datadog status")
 		return err

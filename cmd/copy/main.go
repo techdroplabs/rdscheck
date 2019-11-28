@@ -51,6 +51,11 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 		}
 		for _, snapshot := range snapshots {
 			if *snapshot.SnapshotType == "automated" {
+				err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "ok", "copy")
+				if err != nil {
+					log.WithError(err).Error("Could not update datadog status")
+					return err
+				}
 				var preSignedUrl string
 				cleanArn := destination.CleanArn(snapshot)
 				if *snapshot.Encrypted {
@@ -59,14 +64,24 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 						log.WithFields(log.Fields{
 							"snapshot": *snapshot.DBSnapshotIdentifier,
 						}).Errorf("Could not presigned the url: %s", err)
+						err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical", "copy")
+						if err != nil {
+							log.WithError(err).Error("Could not update datadog status")
+							return err
+						}
 						return err
 					}
 				}
-				err := destination.CopySnapshots(snapshot, instance.Destination, instance.KmsID, preSignedUrl, cleanArn)
+				err = destination.CopySnapshots(snapshot, instance.Destination, instance.KmsID, preSignedUrl, cleanArn)
 				if err != nil {
 					log.WithFields(log.Fields{
 						"Snapshot": *snapshot.DBSnapshotIdentifier,
 					}).Errorf("Could not copy snapshot: %s", err)
+					err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical", "copy")
+					if err != nil {
+						log.WithError(err).Error("Could not update datadog status")
+						return err
+					}
 					return err
 				}
 			}

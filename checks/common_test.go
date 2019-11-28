@@ -117,7 +117,7 @@ func TestPostDatadogChecks(t *testing.T) {
 		DBSnapshotIdentifier: aws.String("test"),
 	}
 
-	err := c.PostDatadogChecks(input, "rdscheck.status", "ok")
+	err := c.PostDatadogChecks(input, "rdscheck.status", "ok", "check")
 	assert.Nil(t, err)
 }
 

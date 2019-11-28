@@ -24,7 +24,7 @@ type DefaultChecks interface {
 	GetYamlFileFromS3(bucket, key string) (io.Reader, error)
 	UnmarshalYamlFile(body io.Reader) (Doc, error)
 	DataDogSession(apiKey, applicationKey string) *datadog.Client
-	PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status string) error
+	PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status, cmdName string) error
 	GetSnapshots(DBInstanceIdentifier string) ([]*rds.DBSnapshot, error)
 	CopySnapshots(snapshot *rds.DBSnapshot, destination, kmsid, preSignedUrl, cleanArn string) error
 	GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]*rds.DBSnapshot, error)
@@ -136,11 +136,12 @@ func (c *Client) UnmarshalYamlFile(body io.Reader) (Doc, error) {
 }
 
 // PostDatadogChecks posts to datadog the status of a check
-func (c *Client) PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status string) error {
+func (c *Client) PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status, cmdName string) error {
 
 	tags := []string{
 		"database:" + *snapshot.DBInstanceIdentifier,
 		"snapshot:" + *snapshot.DBSnapshotIdentifier,
+		"command" + cmdName,
 	}
 
 	timeNow := utils.GetUnixTimeAsString()
