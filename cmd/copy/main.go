@@ -63,7 +63,7 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 					if err != nil {
 						log.WithFields(log.Fields{
 							"snapshot": *snapshot.DBSnapshotIdentifier,
-						}).Errorf("Could not presigned the url: %s", err)
+						}).WithError(err).Error("Could not presigned the url")
 						err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical", "copy")
 						if err != nil {
 							log.WithError(err).Error("Could not update datadog status")
@@ -76,7 +76,7 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 				if err != nil {
 					log.WithFields(log.Fields{
 						"Snapshot": *snapshot.DBSnapshotIdentifier,
-					}).Errorf("Could not copy snapshot: %s", err)
+					}).WithError(err).Error("Could not copy snapshot")
 					err := destination.PostDatadogChecks(snapshot, "rdscheck.status", "critical", "copy")
 					if err != nil {
 						log.WithError(err).Error("Could not update datadog status")
