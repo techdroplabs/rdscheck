@@ -215,26 +215,24 @@ func caseVerify(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, inst
 		return err
 	}
 
-	if instance.Name == *dbInfo.DBName {
-		for _, query := range instance.Queries {
-			if destination.CheckRegexAgainstRow(query.Query, query.Regex) {
-				err := destination.UpdateTag(snapshot, "Status", "clean")
-				if err != nil {
-					return err
-				}
-			} else {
-				log.WithFields(log.Fields{
-					"RDS Instance": string(*snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier),
-					"DB Name":      *dbInfo.DBName,
-					"Query":        query.Query,
-					"Regex":        query.Regex,
-				}).Errorf("Query matched failed: %s", err)
-				errors := destination.UpdateTag(snapshot, "Status", "alarm")
-				if errors != nil {
-					return err
-				}
+	for _, query := range instance.Queries {
+		if destination.CheckRegexAgainstRow(query.Query, query.Regex) {
+			err := destination.UpdateTag(snapshot, "Status", "clean")
+			if err != nil {
 				return err
 			}
+		} else {
+			log.WithFields(log.Fields{
+				"RDS Instance": string(*snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier),
+				"DB Name":      *dbInfo.DBName,
+				"Query":        query.Query,
+				"Regex":        query.Regex,
+			}).Errorf("Query matched failed: %s", err)
+			errors := destination.UpdateTag(snapshot, "Status", "alarm")
+			if errors != nil {
+				return err
+			}
+			return err
 		}
 	}
 	return nil
