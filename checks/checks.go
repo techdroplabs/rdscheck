@@ -103,14 +103,13 @@ func (c *Client) CheckRegexAgainstRow(query, regex string) bool {
 				log.WithError(err).Error("Could not check regex against result")
 				return false
 			}
-			for value {
+			if value {
 				log.WithFields(log.Fields{
 					"regex":  regex,
 					"result": result,
 				}).Info("Found a match")
-				break
+				return value
 			}
-			return value
 		}
 	}
 	return true
