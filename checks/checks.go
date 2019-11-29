@@ -109,6 +109,8 @@ func (c *Client) CheckRegexAgainstRow(query, regex string) bool {
 					"result": result,
 				}).Info("Found a match")
 				return value
+			} else {
+				return false
 			}
 		}
 	}
