@@ -141,7 +141,7 @@ func (c *Client) PostDatadogChecks(snapshot *rds.DBSnapshot, metricName, status,
 	tags := []string{
 		"database:" + *snapshot.DBInstanceIdentifier,
 		"snapshot:" + *snapshot.DBSnapshotIdentifier,
-		"command" + cmdName,
+		"command:" + cmdName,
 	}
 
 	timeNow := utils.GetUnixTimeAsString()
