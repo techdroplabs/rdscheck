@@ -70,6 +70,8 @@ module "rdscheck-copy" {
       S3_BUCKET         = "s3-bucket-with-yaml-file"
       S3_KEY            = "rdscheck.yml"
       AWS_REGION_SOURCE = "us-west-2"
+      DD_API_KEY        = "lked78t4iuhweoih8oi"
+      DD_APP_KEY        = "lknsdc8754liwhefp90"
     }
   }
 }
