@@ -104,21 +104,38 @@ resource "aws_iam_role_policy_attachment" "rdscheck_role_AmazonRDSFullAccess_pol
   policy_arn = "${data.aws_iam_policy.AmazonRDSFullAccess.arn}"
 }
 
-resource "aws_cloudwatch_event_rule" "rdscheck_rule" {
-  name                = "rdscheck_${var.command}_rule"
+resource "aws_cloudwatch_event_rule" "rdscheck_rule_copy" {
+  count         = "${var.command != "check" ? 1 : 0}"
+  name          = "rdscheck_copy_rule"
+  is_enabled    = true
+  event_pattern = <<PATTERN
+{
+  "source": [
+    "aws.rds"
+  ],
+  "detail-type": [
+    "RDS DB Snapshot Event"
+  ]
+}
+PATTERN
+}
+
+resource "aws_cloudwatch_event_rule" "rdscheck_rule_check" {
+  count               = "${var.command != "copy" ? 1 : 0}"
+  name                = "rdscheck_check_rule"
   schedule_expression = "${var.lambda_rate}"
   is_enabled          = true
 }
 
 resource "aws_cloudwatch_event_target" "rdscheck_target_check" {
   count = "${var.command != "copy" ? 1 : 0}"
-  rule  = "${aws_cloudwatch_event_rule.rdscheck_rule.name}"
+  rule  = "${aws_cloudwatch_event_rule.rdscheck_rule_check.name}"
   arn   = "${aws_lambda_function.rdscheck_lambda_check.arn}"
 }
 
 resource "aws_cloudwatch_event_target" "rdscheck_target_copy" {
   count = "${var.command != "check" ? 1 : 0}"
-  rule  = "${aws_cloudwatch_event_rule.rdscheck_rule.name}"
+  rule  = "${aws_cloudwatch_event_rule.rdscheck_rule_copy.name}"
   arn   = "${aws_lambda_function.rdscheck_lambda_copy.arn}"
 }
 
@@ -128,7 +145,7 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_rdscheck_check" {
   action        = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.rdscheck_lambda_check.function_name}"
   principal     = "events.amazonaws.com"
-  source_arn    = "${aws_cloudwatch_event_rule.rdscheck_rule.arn}"
+  source_arn    = "${aws_cloudwatch_event_rule.rdscheck_rule_check.arn}"
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_to_call_rdscheck_copy" {
@@ -137,7 +154,7 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_rdscheck_copy" {
   action        = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.rdscheck_lambda_copy.function_name}"
   principal     = "events.amazonaws.com"
-  source_arn    = "${aws_cloudwatch_event_rule.rdscheck_rule.arn}"
+  source_arn    = "${aws_cloudwatch_event_rule.rdscheck_rule_copy.arn}"
 }
 
 variable "lambda_rate" {
