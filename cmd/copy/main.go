@@ -46,7 +46,7 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 			log.WithFields(log.Fields{
 				"RDS Instance": instance.Name,
 				"AWS Region":   config.AWSRegionSource,
-			}).Errorf("Could not get snapshots: %s", err)
+			}).WithError(err).Error("Could not get snapshots")
 			return err
 		}
 		for _, snapshot := range snapshots {
@@ -92,7 +92,7 @@ func copy(source checks.DefaultChecks, destination checks.DefaultChecks) error {
 			log.WithFields(log.Fields{
 				"RDS Instance": instance.Name,
 				"AWS Region":   instance.Destination,
-			}).Errorf("Could not get snapshots: %s", err)
+			}).WithError(err).Error("Could not get snapshots")
 			return err
 		}
 		for _, snapshot := range snapshots {

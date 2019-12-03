@@ -34,6 +34,10 @@ var singleInstance = &checks.Instances{
 			Query: "SELECT tablename FROM pg_catalog.pg_tables;",
 			Regex: "^pg_statistic$",
 		},
+		checks.Queries{
+			Query: "SELECT tablename FROM pg_catalog.pg_tables;",
+			Regex: "^pg_test$",
+		},
 	},
 }
 

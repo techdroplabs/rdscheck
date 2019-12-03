@@ -66,7 +66,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 		if err != nil {
 			log.WithFields(log.Fields{
 				"RDS Instance": instance.Name,
-			}).Errorf("Could not get snapshots: %s", err)
+			}).WithError(err).Error("Could not get snapshots")
 			return err
 		}
 		for _, snapshot := range snapshots {
@@ -77,7 +77,7 @@ func validate(destination checks.DefaultChecks, doc checks.Doc) error {
 					log.WithFields(log.Fields{
 						"RDS Instance": instance.Name,
 						"Snapshot":     *snapshot.DBSnapshotIdentifier,
-					}).Errorf("Could not get snapshots: %s", err)
+					}).WithError(err).Error("Could not get snapshots")
 					return err
 				}
 			}
@@ -118,7 +118,7 @@ func caseReady(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"RDS Instance": *snapshot.DBInstanceIdentifier,
-		}).Errorf("Could not create Database Subnet Group: %s", err)
+		}).WithError(err).Error("Could not create Database Subnet Group")
 		err = destination.UpdateTag(snapshot, "Status", "alarm")
 		if err != nil {
 			return err
@@ -138,7 +138,7 @@ func caseRestore(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, ins
 		log.WithFields(log.Fields{
 			"Snapshot":     *snapshot.DBSnapshotIdentifier,
 			"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
-		}).Errorf("Could not create rds instance from snapshot: %s", err)
+		}).WithError(err).Error("Could not create rds instance from snapshot")
 		errors := destination.UpdateTag(snapshot, "Status", "alarm")
 		if errors != nil {
 			return err
@@ -227,7 +227,7 @@ func caseVerify(destination checks.DefaultChecks, snapshot *rds.DBSnapshot, inst
 				"DB Name":      *dbInfo.DBName,
 				"Query":        query.Query,
 				"Regex":        query.Regex,
-			}).Errorf("Query matched failed: %s", err)
+			}).WithError(err).Error("Query matched failed")
 			errors := destination.UpdateTag(snapshot, "Status", "alarm")
 			if errors != nil {
 				return err
@@ -262,7 +262,7 @@ func caseClean(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"RDS Instance": *snapshot.DBInstanceIdentifier + "-" + *snapshot.DBSnapshotIdentifier,
-		}).Errorf("Could not delete the rds instance: %s", err)
+		}).WithError(err).Error("Could not delete the rds instance")
 		return err
 	}
 
@@ -286,7 +286,7 @@ func caseTested(destination checks.DefaultChecks, snapshot *rds.DBSnapshot) erro
 	if err != nil {
 		log.WithFields(log.Fields{
 			"RDS Instance": *snapshot.DBInstanceIdentifier,
-		}).Errorf("Could not delete database subnet group: %s", err)
+		}).WithError(err).Error("Could not delete database subnet group")
 		return err
 	}
 	return nil

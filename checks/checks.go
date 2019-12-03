@@ -68,6 +68,7 @@ func (c *Client) CheckRegexAgainstRow(query, regex string) bool {
 
 	cols, err := rows.Columns()
 	if err != nil {
+		log.WithError(err).Error("Could not return the columns name")
 		return false
 	}
 
@@ -108,11 +109,9 @@ func (c *Client) CheckRegexAgainstRow(query, regex string) bool {
 					"regex":  regex,
 					"result": result,
 				}).Info("Found a match")
-				return value
-			} else {
-				return false
+				return true
 			}
 		}
 	}
-	return true
+	return false
 }
