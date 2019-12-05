@@ -134,29 +134,21 @@ func (c *Client) GetOldSnapshots(snapshots []*rds.DBSnapshot, retentionDays int)
 	return oldSnapshots, nil
 }
 
-//  DeleteOldSnapshots deletes snapshots returned by GetOldSnapshots
-func (c *Client) DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error {
-	for _, s := range snapshots {
-		if s.DBSnapshotIdentifier == nil {
-			log.Info("No old snapshots to delete")
-			break
-		}
-
-		input := &rds.DeleteDBSnapshotInput{
-			DBSnapshotIdentifier: aws.String(*s.DBSnapshotIdentifier),
-		}
-
-		_, err := c.RDS.DeleteDBSnapshot(input)
-		if err != nil {
-			return err
-		} else {
-			log.WithFields(log.Fields{
-				"Snapshot": *s.DBSnapshotIdentifier,
-			}).Info("Snapshot deleted")
-			return nil
-		}
+//  DeleteOldSnapshot deletes snapshots returned by GetOldSnapshots
+func (c *Client) DeleteOldSnapshot(snapshot *rds.DBSnapshot) error {
+	input := &rds.DeleteDBSnapshotInput{
+		DBSnapshotIdentifier: aws.String(*snapshot.DBSnapshotIdentifier),
 	}
-	return nil
+
+	_, err := c.RDS.DeleteDBSnapshot(input)
+	if err != nil {
+		return err
+	} else {
+		log.WithFields(log.Fields{
+			"Snapshot": *snapshot.DBSnapshotIdentifier,
+		}).Info("Snapshot deleted")
+		return nil
+	}
 }
 
 // CheckIfDatabaseSubnetGroupExist return true if the Subnet Group already exist

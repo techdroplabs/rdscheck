@@ -6,6 +6,10 @@
     - Creates new rds instance(s) with the snapshots
     - Runs a set of queries on the database to validate the content of the backup
 
+## TODO
+
+- Handle things gracefully when there is more than 5 snapshots to copy
+- Handle different retentions between automatic and manual backups. (tag automatic snapshot with something like "CopiedBy" "rdscheck" and skip if set)
 
 ## check: state machine diagram
 
@@ -18,7 +22,7 @@
     - database: `the name of the databse that we copied and restored we use this field to initiate the db connection`
     - type: `the rds instance type we want to use to restore the snapshot`
     - password: `the password that we will use to connect to the database. It doesn't need to be the original one. We will use this one to reset the original password`
-    - retention: `how many days we want to keep the copied snapshot around`
+    - retention: `how many days we want to keep the copied snapshot around. Right now it should be equal to the number of days the automatic backups are kept`
     - destination: `the aws region where we will copy/restore the snapshot`
     - kmsid: `the id (ARN) of the kms key that you want to use on the destination region. This is needed if your original snapshot is encrypted`
     - queries: `all the sql queries we want to run on the restored snapshot to validate it and the expected results as regex`
@@ -60,7 +64,7 @@ By doing so we can then download the command zip file for a release and use it w
 ```hcl
 
 module "rdscheck-copy" {
-  source = "github.com/techdroplabs/rdscheck//terraform?ref=v0.0.8"
+  source = "github.com/techdroplabs/rdscheck//terraform?ref=v0.0.9"
 
   release_version = "v0.0.8"
   command = "copy"
@@ -80,7 +84,7 @@ module "rdscheck-copy" {
 ```hcl
 
 module "rdscheck-check" {
-  source = "github.com/techdroplabs/rdscheck//terraform?ref=v0.0.8"
+  source = "github.com/techdroplabs/rdscheck//terraform?ref=v0.0.9"
 
   lambda_rate = "rate(30 minutes)"
   release_version = "v0.0.8"

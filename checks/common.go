@@ -28,7 +28,7 @@ type DefaultChecks interface {
 	GetSnapshots(DBInstanceIdentifier string) ([]*rds.DBSnapshot, error)
 	CopySnapshots(snapshot *rds.DBSnapshot, destination, kmsid, preSignedUrl, cleanArn string) error
 	GetOldSnapshots(snapshots []*rds.DBSnapshot, retention int) ([]*rds.DBSnapshot, error)
-	DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error
+	DeleteOldSnapshot(snapshot *rds.DBSnapshot) error
 	CheckIfDatabaseSubnetGroupExist(snapshot *rds.DBSnapshot) bool
 	CreateDatabaseSubnetGroup(snapshot *rds.DBSnapshot, subnetids []string) error
 	CreateDBFromSnapshot(snapshot *rds.DBSnapshot, instancetype string, vpcsecuritygroupids []string) error

@@ -193,27 +193,22 @@ func TestGetOldSnapshots(t *testing.T) {
 	rdsc.AssertExpectations(t)
 }
 
-func TestDeleteOldSnapshots(t *testing.T) {
+func TestDeleteOldSnapshot(t *testing.T) {
 	rdsc := &mockRDS{}
 
 	c := &Client{
 		RDS: rdsc,
 	}
 
-	input := []*rds.DBSnapshot{
-		&rds.DBSnapshot{
-			DBSnapshotIdentifier: aws.String("old-test-1"),
-		},
-		&rds.DBSnapshot{
-			DBSnapshotIdentifier: aws.String("old-test-2"),
-		},
+	input := &rds.DBSnapshot{
+		DBSnapshotIdentifier: aws.String("old-test-1"),
 	}
 
 	rdsc.On("DeleteDBSnapshot", mock.Anything).Return(&rds.DeleteDBSnapshotOutput{
 		DBSnapshot: &rds.DBSnapshot{},
 	}, nil)
 
-	err := c.DeleteOldSnapshots(input)
+	err := c.DeleteOldSnapshot(input)
 	assert.Nil(t, err)
 	rdsc.AssertExpectations(t)
 }

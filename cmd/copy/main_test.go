@@ -69,8 +69,8 @@ func (m *mockDefaultChecks) GetOldSnapshots(snapshots []*rds.DBSnapshot, retenti
 	return args.Get(0).([]*rds.DBSnapshot), args.Error(1)
 }
 
-func (m *mockDefaultChecks) DeleteOldSnapshots(snapshots []*rds.DBSnapshot) error {
-	args := m.Called(snapshots)
+func (m *mockDefaultChecks) DeleteOldSnapshot(snapshot *rds.DBSnapshot) error {
+	args := m.Called(snapshot)
 	return args.Error(0)
 }
 
@@ -108,7 +108,7 @@ func (m *mockDefaultChecks) PostDatadogChecks(snapshot *rds.DBSnapshot, metricNa
 	return args.Error(0)
 }
 
-func TestCopy(t *testing.T) {
+func TestGetDoc(t *testing.T) {
 	c := &mockDefaultChecks{}
 
 	yaml, _ := ioutil.ReadFile("../../example/checks.yml")
@@ -117,16 +117,35 @@ func TestCopy(t *testing.T) {
 	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetYamlFileFromS3", mock.Anything, mock.Anything).Return(input, nil)
 	c.On("UnmarshalYamlFile", mock.Anything).Return(doc, nil)
+}
+
+func TestCopy(t *testing.T) {
+	c := &mockDefaultChecks{}
+
+	c.On("SetSessions", mock.Anything).Return()
 	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
 	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("CleanArn", mock.Anything).Return("test")
 	c.On("PreSignUrl", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("https://url.local", nil)
 	c.On("CopySnapshots", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	err := copy(c, c, doc)
+
+	assert.Nil(t, err)
+	c.AssertExpectations(t)
+}
+
+func TestClean(t *testing.T) {
+	c := &mockDefaultChecks{}
+
+	c.On("SetSessions", mock.Anything).Return()
+	c.On("GetSnapshots", mock.Anything).Return(snapshots, nil)
+	c.On("PostDatadogChecks", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	c.On("CheckTag", mock.Anything, mock.Anything, mock.Anything).Return(true)
 	c.On("GetOldSnapshots", mock.Anything, mock.Anything).Return(snapshots, nil)
-	c.On("DeleteOldSnapshots", mock.Anything).Return(nil)
+	c.On("DeleteOldSnapshot", mock.Anything).Return(nil)
 
-	err := copy(c, c)
+	err := clean(c, doc)
 
 	assert.Nil(t, err)
 	c.AssertExpectations(t)
