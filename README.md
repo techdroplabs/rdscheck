@@ -66,7 +66,7 @@ By doing so we can then download the command zip file for a release and use it w
 module "rdscheck-copy" {
   source = "github.com/techdroplabs/rdscheck//terraform?ref=v0.0.9"
 
-  release_version = "v0.0.8"
+  release_version = "v0.0.9"
   command = "copy"
   lambda_env_vars {
     variables = {
@@ -87,7 +87,7 @@ module "rdscheck-check" {
   source = "github.com/techdroplabs/rdscheck//terraform?ref=v0.0.9"
 
   lambda_rate = "rate(30 minutes)"
-  release_version = "v0.0.8"
+  release_version = "v0.0.9"
   command = "check"
   subnet_ids = ["subnet-12345,subnet-6789"]
   security_group_ids = ["sg-1234,sg-5678"]
