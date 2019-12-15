@@ -30,7 +30,7 @@
       - regex: `the regex of the expected result`
 
 Example:
-```
+```yaml
 instances:
   - name: rdscheck
     database: rdscheck
